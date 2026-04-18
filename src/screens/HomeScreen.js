@@ -78,34 +78,40 @@ export default function HomeScreen({ navigation }) {
     return '#1D9E75'
   }
 
-  const renderTareaCard = (t, index) => (
-    <TouchableOpacity
-      key={index}
-      style={styles.tareaCard}
-      onPress={() => {
-        const hijo = hijos.find(h => h.id === t.hijo_id)
-        if (hijo) navigation.navigate('DetalleTarea', { tarea: t, hijo })
-      }}
-    >
-      <View style={[styles.prioridadBar, { backgroundColor: getPrioridadColor(t.prioridad) }]} />
-      <View style={styles.tareaInfo}>
-        <View style={styles.tareaHeaderRow}>
+  const renderTareaCard = (t, index) => {
+    const estadoInfo = getEstadoInfo ? getEstadoInfo(t.estado) : { color: '#BA7517', bg: '#FAEEDA', label: 'Pendiente' }
+    const hijo = hijos.find(h => h.id === t.hijo_id)
+    return (
+      <TouchableOpacity
+        key={index}
+        style={[styles.tareaCard, { borderLeftColor: t.hijo_color, borderLeftWidth: 5 }]}
+        onPress={() => hijo && navigation.navigate('DetalleTarea', { tarea: t, hijo })}
+      >
+        <View style={styles.tareaCardTop}>
           <View style={[styles.hijoBadge, { backgroundColor: t.hijo_color + '22' }]}>
-            <View style={[styles.hijoDot, { backgroundColor: t.hijo_color }]} />
-            <Text style={[styles.hijoBadgeText, { color: t.hijo_color }]}>{t.hijo_nombre}</Text>
+            <View style={[styles.hijoAvatar, { backgroundColor: t.hijo_color }]}>
+              <Text style={styles.hijoAvatarText}>{t.hijo_nombre.charAt(0).toUpperCase()}</Text>
+            </View>
+            <Text style={[styles.hijoText, { color: t.hijo_color }]}>{t.hijo_nombre}</Text>
           </View>
-          {t.materia_nombre && (
-            <Text style={styles.materiaText}>{t.materia_nombre}</Text>
-          )}
+          <View style={[styles.estadoBadge, { backgroundColor: t.estado === 'entregada' ? '#E1F5EE' : '#FAEEDA' }]}>
+            <Text style={[styles.estadoText, { color: t.estado === 'entregada' ? '#1D9E75' : '#BA7517' }]}>
+              {t.estado}
+            </Text>
+          </View>
         </View>
         <Text style={styles.tareaTitulo}>{t.titulo}</Text>
-        <Text style={styles.tareaFecha}>
-          {t.tipo} · {t.estado}
-        </Text>
-      </View>
-      <Ionicons name="chevron-forward" size={16} color={COLORS.textTertiary} />
-    </TouchableOpacity>
-  )
+        <View style={styles.tareaCardBottom}>
+          {t.materia_nombre && (
+            <Text style={styles.materiaText}>📚 {t.materia_nombre}</Text>
+          )}
+          {t.fecha_entrega && (
+            <Text style={styles.fechaText}>📅 {t.fecha_entrega}</Text>
+          )}
+        </View>
+      </TouchableOpacity>
+    )
+  }
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
@@ -160,7 +166,9 @@ export default function HomeScreen({ navigation }) {
                 </View>
                 <Text style={styles.sectionCount}>{tareasHoy.length}</Text>
               </View>
-              {tareasHoy.map((t, i) => renderTareaCard(t, i))}
+              <View style={styles.tareasGrid}>
+                {tareasHoy.map((t, i) => renderTareaCard(t, i))}
+              </View>
             </View>
           )}
 
@@ -173,7 +181,9 @@ export default function HomeScreen({ navigation }) {
                 </View>
                 <Text style={styles.sectionCount}>{tareasUrgentes.length}</Text>
               </View>
-              {tareasUrgentes.map((t, i) => renderTareaCard(t, i))}
+              <View style={styles.tareasGrid}>
+                {tareasUrgentes.map((t, i) => renderTareaCard(t, i))}
+              </View>
             </View>
           )}
 
@@ -243,18 +253,14 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primaryLight,
     alignItems: 'center', justifyContent: 'center'
   },
-  statsRow: {
-    flexDirection: 'row', gap: 12, padding: 16
-  },
+  statsRow: { flexDirection: 'row', gap: 12, padding: 16 },
   statCard: {
     flex: 1, backgroundColor: COLORS.surface, borderRadius: 16,
     padding: 14, alignItems: 'center', borderWidth: 0.5, borderColor: COLORS.border
   },
   statNum: { fontSize: 24, fontWeight: '500', color: COLORS.primary },
   statLabel: { fontSize: 12, color: COLORS.textSecondary, marginTop: 2 },
-  emptyState: {
-    alignItems: 'center', padding: 40, gap: 10
-  },
+  emptyState: { alignItems: 'center', padding: 40, gap: 10 },
   emptyIcon: { fontSize: 56 },
   emptyTitle: { fontSize: 20, fontWeight: '500', color: COLORS.textPrimary },
   emptyDesc: { fontSize: 14, color: COLORS.textSecondary, textAlign: 'center' },
@@ -276,24 +282,33 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background, paddingHorizontal: 8,
     paddingVertical: 2, borderRadius: 10
   },
-  tareaCard: {
-    backgroundColor: COLORS.surface, borderRadius: 12,
-    flexDirection: 'row', alignItems: 'center',
-    borderWidth: 0.5, borderColor: COLORS.border,
-    overflow: 'hidden', marginBottom: 8
+  tareasGrid: {
+    flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 8
   },
-  prioridadBar: { width: 4, alignSelf: 'stretch' },
-  tareaInfo: { flex: 1, padding: 12 },
-  tareaHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
+  tareaCard: {
+    backgroundColor: COLORS.surface, borderRadius: 16,
+    padding: 12, gap: 6, borderWidth: 0.5,
+    borderColor: COLORS.border, overflow: 'hidden', width: '47%',
+  },
+  tareaCardTop: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+  },
   hijoBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
-    paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8
+    paddingHorizontal: 6, paddingVertical: 2, borderRadius: 20,
   },
-  hijoDot: { width: 5, height: 5, borderRadius: 3 },
-  hijoBadgeText: { fontSize: 11, fontWeight: '500' },
-  materiaText: { fontSize: 11, color: COLORS.textTertiary },
-  tareaTitulo: { fontSize: 14, fontWeight: '500', color: COLORS.textPrimary },
-  tareaFecha: { fontSize: 12, color: COLORS.textSecondary, marginTop: 2, textTransform: 'capitalize' },
+  hijoAvatar: {
+    width: 18, height: 18, borderRadius: 9,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  hijoAvatarText: { fontSize: 10, fontWeight: '500', color: '#fff' },
+  hijoText: { fontSize: 11, fontWeight: '500' },
+  estadoBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 20 },
+  estadoText: { fontSize: 11, fontWeight: '500', textTransform: 'capitalize' },
+  tareaTitulo: { fontSize: 13, fontWeight: '500', color: COLORS.textPrimary, lineHeight: 18 },
+  tareaCardBottom: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
+  materiaText: { fontSize: 11, color: COLORS.textSecondary },
+  fechaText: { fontSize: 11, color: COLORS.textSecondary },
   todoListo: { alignItems: 'center', padding: 40, gap: 8 },
   todoListoIcon: { fontSize: 48 },
   todoListoTitle: { fontSize: 18, fontWeight: '500', color: COLORS.textPrimary },
@@ -303,11 +318,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 12,
     borderWidth: 0.5, borderColor: COLORS.border, marginBottom: 8
   },
-  hijoAvatar: {
+  hijoAvatarGrande: {
     width: 44, height: 44, borderRadius: 22,
     alignItems: 'center', justifyContent: 'center'
   },
-  hijoAvatarText: { fontSize: 18, fontWeight: '500', color: '#fff' },
+  hijoAvatarGrandeText: { fontSize: 18, fontWeight: '500', color: '#fff' },
   hijoInfo: { flex: 1 },
   hijoNombre: { fontSize: 15, fontWeight: '500', color: COLORS.textPrimary },
   hijoGrado: { fontSize: 13, color: COLORS.textSecondary, marginTop: 1 },

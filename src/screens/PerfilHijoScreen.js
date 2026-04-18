@@ -105,6 +105,7 @@ export default function PerfilHijoScreen({ route, navigation }) {
           <TouchableOpacity
             key={m.id}
             style={styles.materiaCard}
+            onPress={() => navigation.navigate('DetalleMateria', { materia: m, hijo })}
             onLongPress={() => eliminarMateria(m.id, m.nombre)}
           >
             <View style={[styles.materiaColor, { backgroundColor: m.color }]} />

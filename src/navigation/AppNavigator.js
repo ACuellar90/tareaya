@@ -13,6 +13,7 @@ import AjustesScreen from '../screens/AjustesScreen'
 import PerfilHijoScreen from '../screens/PerfilHijoScreen'
 import AgregarTareaScreen from '../screens/AgregarTareaScreen'
 import DetalleTareaScreen from '../screens/DetalleTareaScreen'
+import DetalleMateriaScreen from '../screens/DetalleMateriaScreen'
 
 const Tab = createBottomTabNavigator()
 const Stack = createNativeStackNavigator()
@@ -63,6 +64,7 @@ export default function AppNavigator() {
         <Stack.Screen name="PerfilHijo" component={PerfilHijoScreen} />
         <Stack.Screen name="AgregarTarea" component={AgregarTareaScreen} />
         <Stack.Screen name="DetalleTarea" component={DetalleTareaScreen} />
+        <Stack.Screen name="DetalleMateria" component={DetalleMateriaScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   )

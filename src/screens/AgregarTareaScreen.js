@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons'
 import DateTimePicker from '@react-native-community/datetimepicker'
 import { COLORS } from '../constants/colors'
 import db from '../database/db'
+import { programarNotificacion, programarNotificacionDiaria } from '../utils/notificaciones'
 
 const TIPOS = [
   { id: 'tarea', label: 'Tarea', icon: 'document-text' },
@@ -92,7 +93,7 @@ export default function AgregarTareaScreen({ route, navigation }) {
     })
   }
 
-  const guardarTarea = () => {
+  const guardarTarea = async () => {
     if (!titulo.trim()) {
       Alert.alert('Error', 'El título es obligatorio')
       return
@@ -116,11 +117,11 @@ export default function AgregarTareaScreen({ route, navigation }) {
 
     const tareaId = resultado.lastInsertRowId
 
-    recordatorios.forEach(r => {
+    for (const r of recordatorios) {
       if (r.activo) {
         db.runSync(
           `INSERT INTO recordatorios (tarea_id, fecha_hora, mensaje, repeticion)
-           VALUES (?, ?, ?, ?)`,
+          VALUES (?, ?, ?, ?)`,
           [
             tareaId,
             r.fecha.toISOString(),
@@ -128,8 +129,25 @@ export default function AgregarTareaScreen({ route, navigation }) {
             r.repeticion || 'una_vez'
           ]
         )
+
+        if (r.repeticion === 'diario') {
+          await programarNotificacionDiaria(
+            '💊 Medicamento',
+            `No olvidés: ${titulo} para ${hijo.nombre}`,
+            r.fecha.getHours(),
+            r.fecha.getMinutes(),
+            tareaId
+          )
+        } else {
+          await programarNotificacion(
+            '📚 TareaYa',
+            `${hijo.nombre} tiene pendiente: ${titulo}`,
+            r.fecha,
+            tareaId
+          )
+        }
       }
-    })
+    }
 
     Alert.alert('¡Listo!', 'Tarea guardada correctamente', [
       { text: 'OK', onPress: () => navigation.goBack() }
