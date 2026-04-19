@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  FlatList, Modal, TextInput, Alert, ScrollView
+  FlatList, Modal, TextInput, Alert, ScrollView,
+  KeyboardAvoidingView, Platform
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { COLORS } from '../constants/colors'
@@ -236,9 +237,13 @@ export default function PerfilHijoScreen({ route, navigation }) {
       )}
 
       <Modal visible={modalVisible} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>Nueva materia</Text>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContainer}>
+              <Text style={styles.modalTitle}>Nueva materia</Text>
 
             <Text style={styles.inputLabel}>Nombre</Text>
             <TextInput
@@ -293,6 +298,7 @@ export default function PerfilHijoScreen({ route, navigation }) {
             </View>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   )
@@ -358,14 +364,14 @@ const styles = StyleSheet.create({
   estadoVencida: { backgroundColor: '#FCEBEB' },
   estadoText: { fontSize: 11, fontWeight: '500', color: COLORS.textSecondary },
   fab: {
-    position: 'absolute', right: 20, bottom: 20,
+    position: 'absolute', right: 20, bottom: 60,
     width: 56, height: 56, borderRadius: 28,
     alignItems: 'center', justifyContent: 'center'
   },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   modalContainer: {
     backgroundColor: COLORS.surface, borderTopLeftRadius: 24,
-    borderTopRightRadius: 24, padding: 24, gap: 12
+    borderTopRightRadius: 24, padding: 24, paddingBottom: 40, gap: 12
   },
   modalTitle: { fontSize: 20, fontWeight: '500', color: COLORS.textPrimary, marginBottom: 4 },
   inputLabel: { fontSize: 13, color: COLORS.textSecondary, marginBottom: 4 },

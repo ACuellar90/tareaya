@@ -1,33 +1,30 @@
 {
   "expo": {
-    "name": "tarekids",
-    "slug": "tarekids",
+    "name": "TareaYa",
+    "slug": "tareaya",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
-    },
-    "ios": {
-      "supportsTablet": true
+      "backgroundColor": "#5B4FCF"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#5B4FCF"
       },
-      "edgeToEdgeEnabled": true
-    },
-    "web": {
-      "favicon": "./assets/favicon.png"
+      "package": "com.acuellar90.tareaya"
     },
     "plugins": [
-      "expo-sqlite",
-      "@react-native-community/datetimepicker"
-    ]
+      "expo-notifications"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "6f4d80a6-f341-4e52-83d2-256046daf2a6"
+      }
+    }
   }
 }

@@ -78,6 +78,13 @@ export default function HomeScreen({ navigation }) {
     return '#1D9E75'
   }
 
+  const getEstadoInfo = (estado) => {
+    if (estado === 'entregada') return { color: '#1D9E75', bg: '#E1F5EE', label: 'Entregada' }
+    if (estado === 'en_progreso') return { color: '#185FA5', bg: '#E6F1FB', label: 'En progreso' }
+    if (estado === 'vencida') return { color: '#E24B4A', bg: '#FCEBEB', label: 'Vencida' }
+    return { color: '#BA7517', bg: '#FAEEDA', label: 'Pendiente' }
+  }
+
   const renderTareaCard = (t, index) => {
     const estadoInfo = getEstadoInfo ? getEstadoInfo(t.estado) : { color: '#BA7517', bg: '#FAEEDA', label: 'Pendiente' }
     const hijo = hijos.find(h => h.id === t.hijo_id)
@@ -283,12 +290,19 @@ const styles = StyleSheet.create({
     paddingVertical: 2, borderRadius: 10
   },
   tareasGrid: {
-    flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 8
+    flexDirection: 'column',
+    gap: 10,
+    padding: 12,
   },
   tareaCard: {
-    backgroundColor: COLORS.surface, borderRadius: 16,
-    padding: 12, gap: 6, borderWidth: 0.5,
-    borderColor: COLORS.border, overflow: 'hidden', width: '47%',
+    backgroundColor: COLORS.surface,
+    borderRadius: 16,
+    padding: 12,
+    gap: 6,
+    borderWidth: 0.5,
+    borderColor: COLORS.border,
+    overflow: 'hidden',
+    width: '100%',
   },
   tareaCardTop: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',

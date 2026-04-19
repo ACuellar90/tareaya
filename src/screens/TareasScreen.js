@@ -149,7 +149,7 @@ export default function TareasScreen({ navigation }) {
             </Text>
           </View>
         ) : (
-          <View style={styles.lista}>
+          
             <View style={styles.grid}>
             {tareasFiltradas.map(t => {
               const estadoInfo = getEstadoInfo(t.estado)
@@ -184,7 +184,6 @@ export default function TareasScreen({ navigation }) {
               )
             })}
             </View>
-          </View>
         )}
         <View style={{ height: 30 }} />
       </ScrollView>
@@ -227,9 +226,9 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
   lista: { padding: 12 },
     grid: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
+      flexDirection: 'column',
       gap: 10,
+      padding: 12,
     },
   empty: { alignItems: 'center', paddingTop: 60, gap: 8 },
   emptyIcon: { fontSize: 48 },
@@ -243,7 +242,7 @@ const styles = StyleSheet.create({
     borderWidth: 0.5,
     borderColor: COLORS.border,
     overflow: 'hidden',
-    width: '47%',
+    alignSelf: 'stretch',
   },
   tareaCardTop: {
     flexDirection: 'row',

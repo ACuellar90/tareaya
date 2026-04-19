@@ -33,6 +33,8 @@ export default function AgregarTareaScreen({ route, navigation }) {
   const [materiaSeleccionada, setMateriaSeleccionada] = useState(null)
   const [fechaEntrega, setFechaEntrega] = useState(new Date())
   const [mostrarFecha, setMostrarFecha] = useState(false)
+  const [mostrarTimePicker, setMostrarTimePicker] = useState(false)
+  const [recordatorioEditando, setRecordatorioEditando] = useState(null)
   const [recordatorios, setRecordatorios] = useState([])
 
   useEffect(() => {
@@ -290,24 +292,57 @@ export default function AgregarTareaScreen({ route, navigation }) {
           <Text style={styles.label}>Recordatorios sugeridos</Text>
           <Text style={styles.sublabel}>Tocá para activar o desactivar</Text>
           {recordatorios.map((r, i) => (
-            <TouchableOpacity
+            <View
               key={i}
               style={[styles.recordatorioRow, r.activo && styles.recordatorioActivo]}
-              onPress={() => toggleRecordatorio(i)}
             >
-              <Ionicons
-                name={r.activo ? 'notifications' : 'notifications-off-outline'}
-                size={18}
-                color={r.activo ? hijo.color : COLORS.textTertiary}
-              />
+              <TouchableOpacity onPress={() => toggleRecordatorio(i)}>
+                <Ionicons
+                  name={r.activo ? 'notifications' : 'notifications-off-outline'}
+                  size={18}
+                  color={r.activo ? hijo.color : COLORS.textTertiary}
+                />
+              </TouchableOpacity>
               <Text style={[styles.recordatorioText, r.activo && { color: COLORS.textPrimary }]}>
                 {r.label}
               </Text>
               {r.activo && (
-                <Ionicons name="checkmark-circle" size={18} color={hijo.color} />
+                <TouchableOpacity
+                  style={[styles.horaBtn, { borderColor: hijo.color }]}
+                  onPress={() => {
+                    setRecordatorioEditando(i)
+                    setMostrarTimePicker(true)
+                  }}
+                >
+                  <Text style={[styles.horaBtnText, { color: hijo.color }]}>
+                    {r.fecha.getHours().toString().padStart(2,'0')}:{r.fecha.getMinutes().toString().padStart(2,'0')}
+                  </Text>
+                </TouchableOpacity>
               )}
-            </TouchableOpacity>
+            </View>
           ))}
+
+          {mostrarTimePicker && (
+            <DateTimePicker
+              value={recordatorios[recordatorioEditando]?.fecha || new Date()}
+              mode="time"
+              display="default"
+              onChange={(event, hora) => {
+                setMostrarTimePicker(false)
+                if (hora && recordatorioEditando !== null) {
+                  const nuevos = [...recordatorios]
+                  const fecha = new Date(nuevos[recordatorioEditando].fecha)
+                  fecha.setHours(hora.getHours())
+                  fecha.setMinutes(hora.getMinutes())
+                  nuevos[recordatorioEditando].fecha = fecha
+                  nuevos[recordatorioEditando].label =
+                    nuevos[recordatorioEditando].label.split('·')[0] +
+                    `· ${hora.getHours().toString().padStart(2,'0')}:${hora.getMinutes().toString().padStart(2,'0')}`
+                  setRecordatorios(nuevos)
+                }
+              }}
+            />
+          )}
         </View>
 
         <View style={styles.section}>
@@ -397,4 +432,9 @@ const styles = StyleSheet.create({
     gap: 8, margin: 16, padding: 16, borderRadius: 16
   },
   btnGuardarText: { fontSize: 16, fontWeight: '500', color: '#fff' },
+  horaBtn: {
+    paddingHorizontal: 10, paddingVertical: 4,
+    borderRadius: 8, borderWidth: 1
+  },
+  horaBtnText: { fontSize: 12, fontWeight: '500' },
 })
