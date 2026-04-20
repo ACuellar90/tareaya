@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  FlatList, Modal, TextInput, ScrollView, Alert
+  FlatList, Modal, TextInput, ScrollView, Alert,
+  KeyboardAvoidingView, Platform
 } from 'react-native'
 import { COLORS } from '../constants/colors'
 import db from '../database/db'
@@ -122,9 +123,13 @@ export default function HijosScreen({ navigation }) {
       )}
 
       <Modal visible={modalVisible} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>Nuevo hijo</Text>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContainer}>
+              <Text style={styles.modalTitle}>Nuevo hijo</Text>
 
             <Text style={styles.inputLabel}>Nombre</Text>
             <TextInput
@@ -189,6 +194,7 @@ export default function HijosScreen({ navigation }) {
             </View>
           </View>
         </View>
+         </KeyboardAvoidingView>
       </Modal>
     </View>
   )
@@ -234,7 +240,7 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     backgroundColor: COLORS.surface, borderTopLeftRadius: 24,
-    borderTopRightRadius: 24, padding: 24, gap: 12
+    borderTopRightRadius: 24, padding: 24, paddingBottom: 40, gap: 12
   },
   modalTitle: { fontSize: 20, fontWeight: '500', color: COLORS.textPrimary, marginBottom: 4 },
   inputLabel: { fontSize: 13, color: COLORS.textSecondary, marginBottom: 4 },

@@ -1,21 +1,20 @@
 import { useState, useEffect } from 'react'
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  ScrollView, TextInput, Switch, Alert, Linking
+  ScrollView, TextInput, Switch, Linking
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { COLORS } from '../constants/colors'
 
-const VERSION = '1.0.0'
-const WHATSAPP = '50300000000' // cambiá por tu número
+const VERSION = '1.1.0'
+const WHATSAPP = '50300000000'
 const CORREO = 'tareaya.app@gmail.com'
 
 export default function AjustesScreen() {
   const [nombre, setNombre] = useState('')
   const [editandoNombre, setEditandoNombre] = useState(false)
   const [notificaciones, setNotificaciones] = useState(true)
-  const [premium, setPremium] = useState(false)
 
   useEffect(() => {
     cargarAjustes()
@@ -24,10 +23,8 @@ export default function AjustesScreen() {
   const cargarAjustes = async () => {
     const nombreGuardado = await AsyncStorage.getItem('nombre_tutor')
     const notifGuardada = await AsyncStorage.getItem('notificaciones')
-    const premiumGuardado = await AsyncStorage.getItem('premium')
     if (nombreGuardado) setNombre(nombreGuardado)
     if (notifGuardada !== null) setNotificaciones(notifGuardada === 'true')
-    if (premiumGuardado !== null) setPremium(premiumGuardado === 'true')
   }
 
   const guardarNombre = async () => {
@@ -46,23 +43,6 @@ export default function AjustesScreen() {
 
   const abrirCorreo = () => {
     Linking.openURL(`mailto:${CORREO}?subject=Soporte TareaYa`)
-  }
-
-  const desbloquearPremium = () => {
-    Alert.alert(
-      '🌟 TareaYa Premium',
-      'Desbloqueá todas las funciones por un pago único de $4.\n\n✅ Hijos ilimitados\n✅ Tareas ilimitadas\n✅ Recordatorios push\n✅ Sin anuncios',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Desbloquear $4', onPress: async () => {
-            await AsyncStorage.setItem('premium', 'true')
-            setPremium(true)
-            Alert.alert('¡Gracias!', 'TareaYa Premium activado 🎉')
-          }
-        }
-      ]
-    )
   }
 
   return (
@@ -128,42 +108,24 @@ export default function AjustesScreen() {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionLabel}>Plan</Text>
+        <Text style={styles.sectionLabel}>Acerca de</Text>
         <View style={styles.card}>
-          {premium ? (
-            <View style={styles.row}>
-              <View style={[styles.rowIcon, { backgroundColor: '#FAEEDA' }]}>
-                <Ionicons name="star" size={18} color="#BA7517" />
-              </View>
-              <View style={styles.rowContent}>
-                <Text style={styles.rowLabel}>TareaYa Premium</Text>
-                <Text style={[styles.rowDesc, { color: '#1D9E75' }]}>✅ Activo — todas las funciones desbloqueadas</Text>
-              </View>
+          <View style={styles.row}>
+            <View style={[styles.rowIcon, { backgroundColor: COLORS.primaryLight }]}>
+              <Ionicons name="information-circle" size={18} color={COLORS.primary} />
             </View>
-          ) : (
-            <TouchableOpacity style={styles.row} onPress={desbloquearPremium}>
-              <View style={[styles.rowIcon, { backgroundColor: '#FAEEDA' }]}>
-                <Ionicons name="star-outline" size={18} color="#BA7517" />
-              </View>
-              <View style={styles.rowContent}>
-                <Text style={styles.rowLabel}>Desbloquear Premium</Text>
-                <Text style={styles.rowDesc}>$4 pago único · hijos y tareas ilimitadas</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color={COLORS.textTertiary} />
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionLabel}>Soporte</Text>
-        <View style={styles.card}>
+            <View style={styles.rowContent}>
+              <Text style={styles.rowLabel}>TareaYa</Text>
+              <Text style={styles.rowDesc}>Versión {VERSION} · Hecho en El Salvador 🇸🇻</Text>
+            </View>
+          </View>
+          <View style={styles.divider} />
           <TouchableOpacity style={styles.row} onPress={abrirWhatsApp}>
             <View style={[styles.rowIcon, { backgroundColor: '#E1F5EE' }]}>
               <Ionicons name="logo-whatsapp" size={18} color="#1D9E75" />
             </View>
             <View style={styles.rowContent}>
-              <Text style={styles.rowLabel}>WhatsApp</Text>
+              <Text style={styles.rowLabel}>Soporte WhatsApp</Text>
               <Text style={styles.rowDesc}>Escribinos directo</Text>
             </View>
             <Ionicons name="chevron-forward" size={16} color={COLORS.textTertiary} />
@@ -179,21 +141,6 @@ export default function AjustesScreen() {
             </View>
             <Ionicons name="chevron-forward" size={16} color={COLORS.textTertiary} />
           </TouchableOpacity>
-        </View>
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionLabel}>Acerca de</Text>
-        <View style={styles.card}>
-          <View style={styles.row}>
-            <View style={[styles.rowIcon, { backgroundColor: COLORS.primaryLight }]}>
-              <Ionicons name="information-circle" size={18} color={COLORS.primary} />
-            </View>
-            <View style={styles.rowContent}>
-              <Text style={styles.rowLabel}>TareaYa</Text>
-              <Text style={styles.rowDesc}>Versión {VERSION} · Hecho en El Salvador 🇸🇻</Text>
-            </View>
-          </View>
         </View>
       </View>
 

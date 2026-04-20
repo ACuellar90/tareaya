@@ -64,6 +64,21 @@ export const initDB = () => {
       );
     `)
 
+    db.execSync(`
+      CREATE TABLE IF NOT EXISTS recordatorios_extras (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        hijo_id INTEGER,
+        titulo TEXT NOT NULL,
+        descripcion TEXT DEFAULT '',
+        fecha_hora TEXT NOT NULL,
+        repeticion TEXT DEFAULT 'una_vez',
+        tipo TEXT DEFAULT 'general',
+        activo INTEGER DEFAULT 1,
+        created_at TEXT DEFAULT (datetime('now')),
+        FOREIGN KEY (hijo_id) REFERENCES hijos(id) ON DELETE CASCADE
+      );
+    `)
+
   } catch (error) {
     console.log('DB init error:', error)
   }

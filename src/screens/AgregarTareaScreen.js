@@ -127,7 +127,7 @@ export default function AgregarTareaScreen({ route, navigation }) {
           [
             tareaId,
             r.fecha.toISOString(),
-            `Recordatorio: ${titulo}`,
+            `${titulo}${materiaSeleccionada ? ' · ' + (materias.find(m => m.id === materiaSeleccionada)?.nombre || '') : ''}`,
             r.repeticion || 'una_vez'
           ]
         )

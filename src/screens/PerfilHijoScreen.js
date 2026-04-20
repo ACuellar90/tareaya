@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  FlatList, Modal, TextInput, Alert, ScrollView,
+  Modal, TextInput, Alert, ScrollView,
   KeyboardAvoidingView, Platform
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
+import DateTimePicker from '@react-native-community/datetimepicker'
 import { COLORS } from '../constants/colors'
 import db from '../database/db'
 import { useFocusEffect } from '@react-navigation/native'
@@ -18,9 +19,18 @@ const COLORES_MATERIA = [
 ]
 
 const MATERIAS_SUGERIDAS = [
-  'Matemáticas', 'Lenguaje', 'Ciencias Naturales',
-  'Estudios Sociales', 'Inglés', 'Educación Física',
-  'Religión', 'Arte', 'Informática'
+  'Números y Formas', 'Ciudadanía y Valores',
+  'Ciencia y Tecnología', 'Ciencias de la computación', 'Lengua y Literatura',
+  'Matemáticas', 'Inglés', 'Educación Física', 'Arte y Cultura',
+  'Estudios Sociales', 'Religión', 'Orientación', 'Emprendimiento'
+]
+
+const TIPOS_RECORDATORIO = [
+  { id: 'general', label: 'General', icon: 'notifications' },
+  { id: 'reunion', label: 'Reunión', icon: 'people' },
+  { id: 'pago', label: 'Pago', icon: 'cash' },
+  { id: 'cita', label: 'Cita médica', icon: 'medical' },
+  { id: 'evento', label: 'Evento', icon: 'calendar' },
 ]
 
 export default function PerfilHijoScreen({ route, navigation }) {
@@ -28,14 +38,25 @@ export default function PerfilHijoScreen({ route, navigation }) {
   const [tabActiva, setTabActiva] = useState('Materias')
   const [materias, setMaterias] = useState([])
   const [tareas, setTareas] = useState([])
+  const [recordatorios, setRecordatorios] = useState([])
+  const [recordatoriosExtras, setRecordatoriosExtras] = useState([])
   const [modalVisible, setModalVisible] = useState(false)
   const [nombreMateria, setNombreMateria] = useState('')
   const [colorMateria, setColorMateria] = useState(COLORES_MATERIA[0])
+  const [modalRecordatorioVisible, setModalRecordatorioVisible] = useState(false)
+  const [tituloRecordatorio, setTituloRecordatorio] = useState('')
+  const [descripcionRecordatorio, setDescripcionRecordatorio] = useState('')
+  const [tipoRecordatorio, setTipoRecordatorio] = useState('general')
+  const [fechaRecordatorio, setFechaRecordatorio] = useState(new Date())
+  const [mostrarFechaRec, setMostrarFechaRec] = useState(false)
+  const [mostrarHoraRec, setMostrarHoraRec] = useState(false)
 
   useFocusEffect(
     useCallback(() => {
       cargarMaterias()
       cargarTareas()
+      cargarRecordatorios()
+      cargarRecordatoriosExtras()
     }, [])
   )
 
@@ -57,6 +78,25 @@ export default function PerfilHijoScreen({ route, navigation }) {
       [hijo.id]
     )
     setTareas(resultado)
+  }
+
+  const cargarRecordatorios = () => {
+    const resultado = db.getAllSync(
+      `SELECT r.* FROM recordatorios r
+       JOIN tareas t ON r.tarea_id = t.id
+       WHERE t.hijo_id = ?
+       ORDER BY r.fecha_hora ASC`,
+      [hijo.id]
+    )
+    setRecordatorios(resultado)
+  }
+
+  const cargarRecordatoriosExtras = () => {
+    const resultado = db.getAllSync(
+      'SELECT * FROM recordatorios_extras WHERE hijo_id = ? ORDER BY fecha_hora ASC',
+      [hijo.id]
+    )
+    setRecordatoriosExtras(resultado)
   }
 
   const guardarMateria = () => {
@@ -82,6 +122,38 @@ export default function PerfilHijoScreen({ route, navigation }) {
         onPress: () => {
           db.runSync('DELETE FROM materias WHERE id = ?', [id])
           cargarMaterias()
+        }
+      }
+    ])
+  }
+
+  const guardarRecordatorioExtra = () => {
+    if (!tituloRecordatorio.trim()) {
+      Alert.alert('Error', 'El título es obligatorio')
+      return
+    }
+    db.runSync(
+      `INSERT INTO recordatorios_extras (hijo_id, titulo, descripcion, fecha_hora, tipo)
+      VALUES (?, ?, ?, ?, ?)`,
+      [hijo.id, tituloRecordatorio.trim(), descripcionRecordatorio.trim(),
+      fechaRecordatorio.toISOString(), tipoRecordatorio]
+    )
+    setTituloRecordatorio('')
+    setDescripcionRecordatorio('')
+    setTipoRecordatorio('general')
+    setFechaRecordatorio(new Date())
+    setModalRecordatorioVisible(false)
+    cargarRecordatoriosExtras()
+  }
+
+  const eliminarRecordatorioExtra = (id) => {
+    Alert.alert('Eliminar', '¿Eliminar este recordatorio?', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Eliminar', style: 'destructive',
+        onPress: () => {
+          db.runSync('DELETE FROM recordatorios_extras WHERE id = ?', [id])
+          cargarRecordatoriosExtras()
         }
       }
     ])
@@ -163,11 +235,75 @@ export default function PerfilHijoScreen({ route, navigation }) {
 
   const renderRecordatorios = () => (
     <View style={styles.tabContent}>
-      <View style={styles.empty}>
-        <Text style={styles.emptyIcon}>🔔</Text>
-        <Text style={styles.emptyTitle}>Sin recordatorios</Text>
-        <Text style={styles.emptyDesc}>Los recordatorios aparecen aquí</Text>
-      </View>
+      {recordatorios.length === 0 && recordatoriosExtras.length === 0 ? (
+        <View style={styles.empty}>
+          <Text style={styles.emptyIcon}>🔔</Text>
+          <Text style={styles.emptyTitle}>Sin recordatorios</Text>
+          <Text style={styles.emptyDesc}>Tocá + para agregar un recordatorio</Text>
+        </View>
+      ) : (
+        <>
+          {recordatorios.length > 0 && (
+            <>
+              <Text style={styles.recSeccion}>De tareas</Text>
+              {recordatorios.map((r, i) => (
+                <View key={i} style={styles.recordatorioCard}>
+                  <View style={[styles.recordatorioIcono, { backgroundColor: hijo.color + '22' }]}>
+                    <Ionicons name="notifications" size={18} color={hijo.color} />
+                  </View>
+                  <View style={styles.recordatorioInfo}>
+                    <Text style={styles.recordatorioMensaje}>{r.mensaje}</Text>
+                    <Text style={styles.recordatorioFecha}>
+                      {new Date(r.fecha_hora).toLocaleDateString('es-SV', {
+                        day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
+                      })}
+                    </Text>
+                    <View style={[styles.repeticionBadge,
+                      r.repeticion === 'diario' && { backgroundColor: COLORS.primaryLight }
+                    ]}>
+                      <Text style={styles.repeticionText}>
+                        {r.repeticion === 'diario' ? 'Diario' : 'Una vez'}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              ))}
+            </>
+          )}
+          {recordatoriosExtras.length > 0 && (
+            <>
+              <Text style={styles.recSeccion}>Extras</Text>
+              {recordatoriosExtras.map((r, i) => (
+                <TouchableOpacity
+                  key={i}
+                  style={styles.recordatorioCard}
+                  onLongPress={() => eliminarRecordatorioExtra(r.id)}
+                >
+                  <View style={[styles.recordatorioIcono, { backgroundColor: '#FAEEDA' }]}>
+                    <Ionicons name={
+                      TIPOS_RECORDATORIO.find(t => t.id === r.tipo)?.icon || 'notifications'
+                    } size={18} color="#BA7517" />
+                  </View>
+                  <View style={styles.recordatorioInfo}>
+                    <Text style={styles.recordatorioMensaje}>{r.titulo}</Text>
+                    {r.descripcion ? (
+                      <Text style={styles.recordatorioFecha}>{r.descripcion}</Text>
+                    ) : null}
+                    <Text style={styles.recordatorioFecha}>
+                      {new Date(r.fecha_hora).toLocaleDateString('es-SV', {
+                        day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
+                      })}
+                    </Text>
+                    <View style={styles.repeticionBadge}>
+                      <Text style={styles.repeticionText}>{r.tipo}</Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </>
+          )}
+        </>
+      )}
     </View>
   )
 
@@ -224,12 +360,13 @@ export default function PerfilHijoScreen({ route, navigation }) {
         {tabActiva === 'Recordatorios' && renderRecordatorios()}
       </ScrollView>
 
-      {(tabActiva === 'Materias' || tabActiva === 'Tareas') && (
+      {(tabActiva === 'Materias' || tabActiva === 'Tareas' || tabActiva === 'Recordatorios') && (
         <TouchableOpacity
           style={[styles.fab, { backgroundColor: hijo.color }]}
           onPress={() => {
             if (tabActiva === 'Materias') setModalVisible(true)
             if (tabActiva === 'Tareas') navigation.navigate('AgregarTarea', { hijo })
+            if (tabActiva === 'Recordatorios') setModalRecordatorioVisible(true)
           }}
         >
           <Ionicons name="add" size={28} color="#fff" />
@@ -244,60 +381,155 @@ export default function PerfilHijoScreen({ route, navigation }) {
           <View style={styles.modalOverlay}>
             <View style={styles.modalContainer}>
               <Text style={styles.modalTitle}>Nueva materia</Text>
-
-            <Text style={styles.inputLabel}>Nombre</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Ej: Matemáticas"
-              placeholderTextColor={COLORS.textTertiary}
-              value={nombreMateria}
-              onChangeText={setNombreMateria}
-            />
-
-            <Text style={styles.inputLabel}>Sugerencias</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 8 }}>
-              {MATERIAS_SUGERIDAS.map(s => (
+              <Text style={styles.inputLabel}>Nombre</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Ej: Matemáticas"
+                placeholderTextColor={COLORS.textTertiary}
+                value={nombreMateria}
+                onChangeText={setNombreMateria}
+              />
+              <Text style={styles.inputLabel}>Sugerencias</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 8 }}>
+                {MATERIAS_SUGERIDAS.map(s => (
+                  <TouchableOpacity
+                    key={s}
+                    style={styles.sugerenciaPill}
+                    onPress={() => setNombreMateria(s)}
+                  >
+                    <Text style={styles.sugerenciaText}>{s}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+              <Text style={styles.inputLabel}>Color</Text>
+              <View style={styles.coloresRow}>
+                {COLORES_MATERIA.map(c => (
+                  <TouchableOpacity
+                    key={c}
+                    style={[
+                      styles.colorCircle,
+                      { backgroundColor: c },
+                      colorMateria === c && styles.colorCircleActive
+                    ]}
+                    onPress={() => setColorMateria(c)}
+                  />
+                ))}
+              </View>
+              <View style={styles.modalBtns}>
                 <TouchableOpacity
-                  key={s}
-                  style={styles.sugerenciaPill}
-                  onPress={() => setNombreMateria(s)}
+                  style={styles.btnCancelar}
+                  onPress={() => setModalVisible(false)}
                 >
-                  <Text style={styles.sugerenciaText}>{s}</Text>
+                  <Text style={styles.btnCancelarText}>Cancelar</Text>
                 </TouchableOpacity>
-              ))}
-            </ScrollView>
-
-            <Text style={styles.inputLabel}>Color</Text>
-            <View style={styles.coloresRow}>
-              {COLORES_MATERIA.map(c => (
                 <TouchableOpacity
-                  key={c}
-                  style={[
-                    styles.colorCircle,
-                    { backgroundColor: c },
-                    colorMateria === c && styles.colorCircleActive
-                  ]}
-                  onPress={() => setColorMateria(c)}
-                />
-              ))}
-            </View>
-
-            <View style={styles.modalBtns}>
-              <TouchableOpacity
-                style={styles.btnCancelar}
-                onPress={() => setModalVisible(false)}
-              >
-                <Text style={styles.btnCancelarText}>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.btnGuardar, { backgroundColor: hijo.color }]}
-                onPress={guardarMateria}
-              >
-                <Text style={styles.btnGuardarText}>Guardar</Text>
-              </TouchableOpacity>
+                  style={[styles.btnGuardar, { backgroundColor: hijo.color }]}
+                  onPress={guardarMateria}
+                >
+                  <Text style={styles.btnGuardarText}>Guardar</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      <Modal visible={modalRecordatorioVisible} animationType="slide" transparent>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContainer}>
+              <Text style={styles.modalTitle}>Nuevo recordatorio</Text>
+              <Text style={styles.inputLabel}>Título</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Ej: Reunión de padres"
+                placeholderTextColor={COLORS.textTertiary}
+                value={tituloRecordatorio}
+                onChangeText={setTituloRecordatorio}
+              />
+              <Text style={styles.inputLabel}>Tipo</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 8 }}>
+                {TIPOS_RECORDATORIO.map(t => (
+                  <TouchableOpacity
+                    key={t.id}
+                    style={[
+                      styles.sugerenciaPill,
+                      tipoRecordatorio === t.id && { backgroundColor: hijo.color, borderColor: hijo.color }
+                    ]}
+                    onPress={() => setTipoRecordatorio(t.id)}
+                  >
+                    <Text style={[
+                      styles.sugerenciaText,
+                      tipoRecordatorio === t.id && { color: '#fff' }
+                    ]}>{t.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+              <Text style={styles.inputLabel}>Fecha y hora</Text>
+              <TouchableOpacity
+                style={styles.input}
+                onPress={() => setMostrarFechaRec(true)}
+              >
+                <Text style={{ color: COLORS.textPrimary, fontSize: 15 }}>
+                  📅 {fechaRecordatorio.toLocaleDateString('es-SV', {
+                    day: 'numeric', month: 'long', year: 'numeric'
+                  })} · {fechaRecordatorio.toLocaleTimeString('es-SV', {
+                    hour: '2-digit', minute: '2-digit'
+                  })}
+                </Text>
+              </TouchableOpacity>
+              {mostrarFechaRec && (
+                <DateTimePicker
+                  value={fechaRecordatorio}
+                  mode="date"
+                  display="default"
+                  onChange={(event, fecha) => {
+                    setMostrarFechaRec(false)
+                    if (fecha) {
+                      setFechaRecordatorio(fecha)
+                      setMostrarHoraRec(true)
+                    }
+                  }}
+                />
+              )}
+              {mostrarHoraRec && (
+                <DateTimePicker
+                  value={fechaRecordatorio}
+                  mode="time"
+                  display="default"
+                  onChange={(event, hora) => {
+                    setMostrarHoraRec(false)
+                    if (hora) setFechaRecordatorio(hora)
+                  }}
+                />
+              )}
+              <Text style={styles.inputLabel}>Descripción (opcional)</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Detalles..."
+                placeholderTextColor={COLORS.textTertiary}
+                value={descripcionRecordatorio}
+                onChangeText={setDescripcionRecordatorio}
+              />
+              <View style={styles.modalBtns}>
+                <TouchableOpacity
+                  style={styles.btnCancelar}
+                  onPress={() => setModalRecordatorioVisible(false)}
+                >
+                  <Text style={styles.btnCancelarText}>Cancelar</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.btnGuardar, { backgroundColor: hijo.color }]}
+                  onPress={guardarRecordatorioExtra}
+                >
+                  <Text style={styles.btnGuardarText}>Guardar</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
         </KeyboardAvoidingView>
       </Modal>
     </View>
@@ -397,4 +629,25 @@ const styles = StyleSheet.create({
   btnCancelarText: { fontSize: 15, color: COLORS.textSecondary },
   btnGuardar: { flex: 1, padding: 14, borderRadius: 12, alignItems: 'center' },
   btnGuardarText: { fontSize: 15, color: '#fff', fontWeight: '500' },
+  recordatorioCard: {
+    backgroundColor: COLORS.surface, borderRadius: 12,
+    padding: 14, flexDirection: 'row', gap: 12,
+    borderWidth: 0.5, borderColor: COLORS.border, alignItems: 'flex-start'
+  },
+  recordatorioIcono: {
+    width: 36, height: 36, borderRadius: 10,
+    alignItems: 'center', justifyContent: 'center'
+  },
+  recordatorioInfo: { flex: 1, gap: 4 },
+  recordatorioMensaje: { fontSize: 14, fontWeight: '500', color: COLORS.textPrimary },
+  recordatorioFecha: { fontSize: 12, color: COLORS.textSecondary },
+  repeticionBadge: {
+    backgroundColor: COLORS.background, paddingHorizontal: 8,
+    paddingVertical: 3, borderRadius: 8, alignSelf: 'flex-start'
+  },
+  repeticionText: { fontSize: 11, color: COLORS.textSecondary },
+  recSeccion: {
+    fontSize: 12, fontWeight: '500', color: COLORS.textTertiary,
+    textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 4, marginTop: 8
+  },
 })
