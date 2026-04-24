@@ -26,6 +26,8 @@ export async function pedirPermisos() {
       importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 250, 250, 250],
       sound: true,
+      lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+      bypassDnd: true,
     })
   }
 
@@ -39,17 +41,17 @@ export async function programarNotificacion(titulo, cuerpo, fecha, id) {
   const ahora = new Date()
   if (fecha <= ahora) return null
 
-  const segundos = Math.floor((fecha - ahora) / 1000)
-
   const notifId = await Notifications.scheduleNotificationAsync({
     content: {
       title: titulo,
       body: cuerpo,
       sound: true,
+      priority: 'max',
       data: { id },
     },
     trigger: {
-      seconds: segundos,
+      type: 'date',
+      date: fecha,
       channelId: 'tareas',
     },
   })
@@ -66,12 +68,13 @@ export async function programarNotificacionDiaria(titulo, cuerpo, hora, minuto, 
       title: titulo,
       body: cuerpo,
       sound: true,
+      priority: 'max',
       data: { id },
     },
     trigger: {
+      type: 'daily',
       hour: hora,
       minute: minuto,
-      repeats: true,
       channelId: 'tareas',
     },
   })
