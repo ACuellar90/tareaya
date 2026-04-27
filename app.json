@@ -27,9 +27,16 @@
         {
           "icon": "./assets/icon.png",
           "color": "#5B4FCF",
-          "sounds": []
+          "sounds": [],
+          "androidMode": "default",
+          "androidCollapsedTitle": "TareaYa"
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "6f4d80a6-f341-4e52-83d2-256046daf2a6"
+      }
+    }
   }
 }
