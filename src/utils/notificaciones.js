@@ -1,4 +1,5 @@
 import * as Notifications from 'expo-notifications'
+import messaging from '@react-native-firebase/messaging'
 import { Platform } from 'react-native'
 
 Notifications.setNotificationHandler({
@@ -10,6 +11,15 @@ Notifications.setNotificationHandler({
 })
 
 export async function pedirPermisos() {
+  // Pedir permisos de Firebase
+  const authStatus = await messaging().requestPermission()
+  const enabled =
+    authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+    authStatus === messaging.AuthorizationStatus.PROVISIONAL
+
+  if (!enabled) return false
+
+  // Pedir permisos de notificaciones locales
   const { status: existente } = await Notifications.getPermissionsAsync()
   let status = existente
 
@@ -32,6 +42,16 @@ export async function pedirPermisos() {
   }
 
   return true
+}
+
+export async function getFCMToken() {
+  try {
+    const token = await messaging().getToken()
+    return token
+  } catch (e) {
+    console.log('Error obteniendo FCM token:', e)
+    return null
+  }
 }
 
 export async function programarNotificacion(titulo, cuerpo, fecha, id) {

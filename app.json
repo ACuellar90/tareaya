@@ -16,15 +16,20 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#5B4FCF"
       },
-      "package": "com.acuellar90.tareaya"
+      "package": "com.acuellar90.tareaya",
+      "googleServicesFile": "./google-services.json"
     },
     "plugins": [
-      "expo-notifications"
-    ],
-    "extra": {
-      "eas": {
-        "projectId": "6f4d80a6-f341-4e52-83d2-256046daf2a6"
-      }
-    }
+      "@react-native-firebase/app",
+      "@react-native-firebase/messaging",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#5B4FCF",
+          "sounds": []
+        }
+      ]
+    ]
   }
 }
