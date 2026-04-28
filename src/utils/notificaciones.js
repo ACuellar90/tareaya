@@ -2,16 +2,7 @@ import * as Notifications from 'expo-notifications'
 import messaging from '@react-native-firebase/messaging'
 import { Platform } from 'react-native'
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
-})
-
 export async function pedirPermisos() {
-  // Pedir permisos de Firebase
   const authStatus = await messaging().requestPermission()
   const enabled =
     authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
@@ -19,7 +10,6 @@ export async function pedirPermisos() {
 
   if (!enabled) return false
 
-  // Pedir permisos de notificaciones locales
   const { status: existente } = await Notifications.getPermissionsAsync()
   let status = existente
 
@@ -31,13 +21,16 @@ export async function pedirPermisos() {
   if (status !== 'granted') return false
 
   if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync('tareas', {
+    await Notifications.setNotificationChannelAsync('tareas_v2', {
       name: 'Tareas y recordatorios',
       importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 250, 250, 250],
-      sound: true,
+      sound: 'default',
+      enableVibrate: true,
+      lightColor: '#5B4FCF',
       lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
       bypassDnd: true,
+      showBadge: true,
     })
   }
 
@@ -65,14 +58,13 @@ export async function programarNotificacion(titulo, cuerpo, fecha, id) {
     content: {
       title: titulo,
       body: cuerpo,
-      sound: true,
-      priority: 'max',
+      sound: 'default',
+      priority: Notifications.AndroidNotificationPriority.MAX,
       data: { id },
     },
     trigger: {
-      type: 'date',
       date: fecha,
-      channelId: 'tareas',
+      channelId: 'tareas_v2',
     },
   })
 
@@ -87,15 +79,15 @@ export async function programarNotificacionDiaria(titulo, cuerpo, hora, minuto, 
     content: {
       title: titulo,
       body: cuerpo,
-      sound: true,
-      priority: 'max',
+      sound: 'default',
+      priority: Notifications.AndroidNotificationPriority.MAX,
       data: { id },
     },
     trigger: {
-      type: 'daily',
       hour: hora,
       minute: minuto,
-      channelId: 'tareas',
+      repeats: true,
+      channelId: 'tareas_v2',
     },
   })
 
