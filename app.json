@@ -26,11 +26,11 @@
         "expo-notifications",
         {
           "icon": "./assets/icon.png",
-          "color": "#5B4FCF",
-          "sounds": [],
-          "androidMode": "default",
-          "androidCollapsedTitle": "TareaYa"
+          "color": "#5B4FCF"
         }
+      ],
+      [
+        "./plugins/withAndroidManifest.js"
       ]
     ],
     "extra": {
