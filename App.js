@@ -4,7 +4,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context'
 import * as Notifications from 'expo-notifications'
 import { initDB } from './src/database/db'
 import AppNavigator from './src/navigation/AppNavigator'
-import { pedirPermisos, getFCMToken } from './src/utils/notificaciones'
+import { pedirPermisos } from './src/utils/notificaciones'
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -18,10 +18,6 @@ export default function App() {
   useEffect(() => {
     initDB()
     pedirPermisos()
-
-    getFCMToken().then(token => {
-      console.log('FCM Token:', token)
-    })
 
     const subscription = Notifications.addNotificationReceivedListener(notif => {
       console.log('Notificación recibida:', notif)
