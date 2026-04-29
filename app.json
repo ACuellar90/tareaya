@@ -38,13 +38,7 @@
           "androidControlBadge": true
         }
       ],
-      [
-        "expo-notifications",
-        {
-          "icon": "./assets/icon.png",
-          "color": "#5B4FCF"
-        }
-      ],
+      "expo-notifications",
       [
         "expo-build-properties",
         {
