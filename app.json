@@ -6,12 +6,6 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "notification": {
-      "icon": "./assets/icon.png",
-      "color": "#5B4FCF",
-      "androidMode": "default",
-      "androidCollapsedTitle": "Tenés tareas pendientes"
-    },
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
