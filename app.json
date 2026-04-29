@@ -32,12 +32,27 @@
     },
     "plugins": [
       "@react-native-firebase/app",
-      "@react-native-firebase/messaging",
+      [
+        "@react-native-firebase/messaging",
+        {
+          "androidControlBadge": true
+        }
+      ],
       [
         "expo-notifications",
         {
           "icon": "./assets/icon.png",
           "color": "#5B4FCF"
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 34,
+            "targetSdkVersion": 34,
+            "buildToolsVersion": "34.0.0"
+          }
         }
       ]
     ],
