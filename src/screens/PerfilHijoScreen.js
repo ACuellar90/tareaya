@@ -10,6 +10,7 @@ import { COLORS } from '../constants/colors'
 import db from '../database/db'
 import { useFocusEffect } from '@react-navigation/native'
 import { useCallback } from 'react'
+import { programarNotificacion } from '../utils/notificaciones'
 
 const TABS = ['Materias', 'Tareas', 'Recordatorios']
 
@@ -33,6 +34,14 @@ const TIPOS_RECORDATORIO = [
   { id: 'evento', label: 'Evento', icon: 'calendar' },
 ]
 
+const ANTICIPACION_OPCIONES = [
+  { label: 'En el momento', value: 0 },
+  { label: '15 min antes', value: 15 },
+  { label: '30 min antes', value: 30 },
+  { label: '1 hora antes', value: 60 },
+  { label: '1 día antes', value: 1440 },
+]
+
 export default function PerfilHijoScreen({ route, navigation }) {
   const { hijo } = route.params
   const [tabActiva, setTabActiva] = useState('Materias')
@@ -50,6 +59,7 @@ export default function PerfilHijoScreen({ route, navigation }) {
   const [fechaRecordatorio, setFechaRecordatorio] = useState(new Date())
   const [mostrarFechaRec, setMostrarFechaRec] = useState(false)
   const [mostrarHoraRec, setMostrarHoraRec] = useState(false)
+  const [anticipacion, setAnticipacion] = useState(0)
 
   useFocusEffect(
     useCallback(() => {
@@ -127,21 +137,34 @@ export default function PerfilHijoScreen({ route, navigation }) {
     ])
   }
 
-  const guardarRecordatorioExtra = () => {
+  const guardarRecordatorioExtra = async () => {
     if (!tituloRecordatorio.trim()) {
       Alert.alert('Error', 'El título es obligatorio')
       return
     }
+
+    const fechaNotificacion = new Date(fechaRecordatorio)
+    fechaNotificacion.setMinutes(fechaNotificacion.getMinutes() - anticipacion)
+
     db.runSync(
       `INSERT INTO recordatorios_extras (hijo_id, titulo, descripcion, fecha_hora, tipo)
       VALUES (?, ?, ?, ?, ?)`,
       [hijo.id, tituloRecordatorio.trim(), descripcionRecordatorio.trim(),
       fechaRecordatorio.toISOString(), tipoRecordatorio]
     )
+
+    await programarNotificacion(
+      `🔔 ${tituloRecordatorio.trim()}`,
+      descripcionRecordatorio.trim() || `Recordatorio para ${hijo.nombre}`,
+      fechaNotificacion,
+      hijo.id
+    )
+
     setTituloRecordatorio('')
     setDescripcionRecordatorio('')
     setTipoRecordatorio('general')
     setFechaRecordatorio(new Date())
+    setAnticipacion(0)
     setModalRecordatorioVisible(false)
     cargarRecordatoriosExtras()
   }
@@ -468,7 +491,7 @@ export default function PerfilHijoScreen({ route, navigation }) {
                   </TouchableOpacity>
                 ))}
               </ScrollView>
-              <Text style={styles.inputLabel}>Fecha y hora</Text>
+              <Text style={styles.inputLabel}>Fecha y hora del evento</Text>
               <TouchableOpacity
                 style={styles.input}
                 onPress={() => setMostrarFechaRec(true)}
@@ -506,6 +529,24 @@ export default function PerfilHijoScreen({ route, navigation }) {
                   }}
                 />
               )}
+              <Text style={styles.inputLabel}>Recordarme con anticipación</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 8 }}>
+                {ANTICIPACION_OPCIONES.map(op => (
+                  <TouchableOpacity
+                    key={op.value}
+                    style={[
+                      styles.sugerenciaPill,
+                      anticipacion === op.value && { backgroundColor: hijo.color, borderColor: hijo.color }
+                    ]}
+                    onPress={() => setAnticipacion(op.value)}
+                  >
+                    <Text style={[
+                      styles.sugerenciaText,
+                      anticipacion === op.value && { color: '#fff' }
+                    ]}>{op.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
               <Text style={styles.inputLabel}>Descripción (opcional)</Text>
               <TextInput
                 style={styles.input}

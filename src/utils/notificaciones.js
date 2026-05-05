@@ -1,15 +1,7 @@
 import * as Notifications from 'expo-notifications'
-import messaging from '@react-native-firebase/messaging'
 import { Platform } from 'react-native'
 
 export async function pedirPermisos() {
-  const authStatus = await messaging().requestPermission()
-  const enabled =
-    authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
-    authStatus === messaging.AuthorizationStatus.PROVISIONAL
-
-  if (!enabled) return false
-
   const { status: existente } = await Notifications.getPermissionsAsync()
   let status = existente
 
@@ -27,7 +19,6 @@ export async function pedirPermisos() {
       vibrationPattern: [0, 250, 250, 250],
       sound: 'default',
       enableVibrate: true,
-      lightColor: '#5B4FCF',
       lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
       bypassDnd: true,
       showBadge: true,
@@ -35,16 +26,6 @@ export async function pedirPermisos() {
   }
 
   return true
-}
-
-export async function getFCMToken() {
-  try {
-    const token = await messaging().getToken()
-    return token
-  } catch (e) {
-    console.log('Error obteniendo FCM token:', e)
-    return null
-  }
 }
 
 export async function programarNotificacion(titulo, cuerpo, fecha, id) {
