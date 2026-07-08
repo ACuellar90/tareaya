@@ -49,11 +49,30 @@ export default function App() {
   }
 
   const abrirInicioAutomatico = () => {
-    try {
-      Linking.openURL('intent:#Intent;action=com.miui.securitycenter.permission.AutoStartActivity;end')
-    } catch (e) {
-      Linking.openSettings()
+    const intentos = [
+      'intent:#Intent;action=com.miui.securitycenter.permission.AutoStartActivity;end',
+      'intent:#Intent;component=com.miui.securitycenter/.permission.AutoStartActivity;end',
+      'intent:#Intent;action=miui.intent.action.OP_AUTO_START;end',
+    ]
+
+    const intentarAbrir = async (index) => {
+      if (index >= intentos.length) {
+        Linking.openSettings()
+        return
+      }
+      try {
+        const canOpen = await Linking.canOpenURL(intentos[index])
+        if (canOpen) {
+          await Linking.openURL(intentos[index])
+        } else {
+          intentarAbrir(index + 1)
+        }
+      } catch (e) {
+        intentarAbrir(index + 1)
+      }
     }
+
+    intentarAbrir(0)
     setMostrarGuiaXiaomi(false)
   }
 
