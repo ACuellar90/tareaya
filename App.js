@@ -8,6 +8,7 @@ import { initDB } from './src/database/db'
 import AppNavigator from './src/navigation/AppNavigator'
 import { pedirPermisos } from './src/utils/notificaciones'
 import { COLORS } from './src/constants/colors'
+import { iniciarServicioBackground } from './src/utils/backgroundService'
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -23,6 +24,7 @@ export default function App() {
   useEffect(() => {
     initDB()
     pedirPermisos()
+    iniciarServicioBackground()
     verificarXiaomi()
 
     const subscription = Notifications.addNotificationReceivedListener(notif => {
