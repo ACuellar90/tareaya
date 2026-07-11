@@ -2,13 +2,13 @@ import { useEffect, useState } from 'react'
 import { StatusBar } from 'expo-status-bar'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import * as Notifications from 'expo-notifications'
-import { Alert, Linking, Platform, View, Text, TouchableOpacity, StyleSheet } from 'react-native'
+import { Linking, View, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import DeviceInfo from 'react-native-device-info'
 import { initDB } from './src/database/db'
 import AppNavigator from './src/navigation/AppNavigator'
 import { pedirPermisos } from './src/utils/notificaciones'
+import { registrarBackgroundFetch } from './src/utils/backgroundService'
 import { COLORS } from './src/constants/colors'
-import { iniciarServicioBackground } from './src/utils/backgroundService'
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -24,7 +24,7 @@ export default function App() {
   useEffect(() => {
     initDB()
     pedirPermisos()
-    iniciarServicioBackground()
+    registrarBackgroundFetch()
     verificarXiaomi()
 
     const subscription = Notifications.addNotificationReceivedListener(notif => {

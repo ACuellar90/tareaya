@@ -1,10 +1,11 @@
-import BackgroundActions from 'react-native-background-actions'
+import * as BackgroundFetch from 'expo-background-fetch'
+import * as TaskManager from 'expo-task-manager'
 import * as Notifications from 'expo-notifications'
 import db from '../database/db'
 
-const sleep = (time) => new Promise((resolve) => setTimeout(resolve, time))
+const BACKGROUND_FETCH_TASK = 'background-fetch-tareas'
 
-const verificarRecordatorios = async () => {
+TaskManager.defineTask(BACKGROUND_FETCH_TASK, async () => {
   try {
     const ahora = new Date()
     const ahoraStr = ahora.toISOString()
@@ -28,16 +29,11 @@ const verificarRecordatorios = async () => {
         },
         trigger: null,
       })
-
-      db.runSync(
-        'UPDATE recordatorios SET activo = 0 WHERE id = ?',
-        [r.id]
-      )
+      db.runSync('UPDATE recordatorios SET activo = 0 WHERE id = ?', [r.id])
     }
 
     const extrasPendientes = db.getAllSync(
-      `SELECT * FROM recordatorios_extras
-       WHERE fecha_hora <= ? AND activo = 1`,
+      `SELECT * FROM recordatorios_extras WHERE fecha_hora <= ? AND activo = 1`,
       [ahoraStr]
     )
 
@@ -51,50 +47,25 @@ const verificarRecordatorios = async () => {
         },
         trigger: null,
       })
-
-      db.runSync(
-        'UPDATE recordatorios_extras SET activo = 0 WHERE id = ?',
-        [r.id]
-      )
+      db.runSync('UPDATE recordatorios_extras SET activo = 0 WHERE id = ?', [r.id])
     }
+
+    return BackgroundFetch.BackgroundFetchResult.NewData
   } catch (e) {
-    console.log('Error verificando recordatorios:', e)
+    console.log('Background fetch error:', e)
+    return BackgroundFetch.BackgroundFetchResult.Failed
   }
-}
+})
 
-const tareaBackground = async (taskData) => {
-  while (BackgroundActions.isRunning()) {
-    await verificarRecordatorios()
-    await sleep(60000) // revisar cada minuto
-  }
-}
-
-const opciones = {
-  taskName: 'TareaYa',
-  taskTitle: 'TareaYa activo',
-  taskDesc: 'Monitoreando recordatorios',
-  taskIcon: {
-    name: 'ic_launcher',
-    type: 'mipmap',
-  },
-  color: '#5B4FCF',
-  parameters: {
-    delay: 60000,
-  },
-}
-
-export const iniciarServicioBackground = async () => {
+export async function registrarBackgroundFetch() {
   try {
-    await BackgroundActions.start(tareaBackground, opciones)
+    await BackgroundFetch.registerTaskAsync(BACKGROUND_FETCH_TASK, {
+      minimumInterval: 60,
+      stopOnTerminate: false,
+      startOnBoot: true,
+    })
+    console.log('Background fetch registrado')
   } catch (e) {
-    console.log('Error iniciando background service:', e)
-  }
-}
-
-export const detenerServicioBackground = async () => {
-  try {
-    await BackgroundActions.stop()
-  } catch (e) {
-    console.log('Error deteniendo background service:', e)
+    console.log('Error registrando background fetch:', e)
   }
 }
