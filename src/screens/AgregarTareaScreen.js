@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react'
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  TextInput, ScrollView, Alert, Platform
+  TextInput, ScrollView, Alert, Platform, FlatList
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import DateTimePicker from '@react-native-community/datetimepicker'
 import { COLORS } from '../constants/colors'
 import db from '../database/db'
 import { programarNotificacion, programarNotificacionDiaria } from '../utils/notificaciones'
+import RecordatorioModal from '../components/RecordatorioModal'
 
 const TIPOS = [
   { id: 'tarea', label: 'Tarea', icon: 'document-text' },
@@ -33,16 +34,17 @@ export default function AgregarTareaScreen({ route, navigation }) {
   const [materiaSeleccionada, setMateriaSeleccionada] = useState(null)
   const [fechaEntrega, setFechaEntrega] = useState(new Date())
   const [mostrarFecha, setMostrarFecha] = useState(false)
-  const [mostrarTimePicker, setMostrarTimePicker] = useState(false)
-  const [recordatorioEditando, setRecordatorioEditando] = useState(null)
   const [recordatorios, setRecordatorios] = useState([])
+  const [recordatoriosSugeridos, setRecordatoriosSugeridos] = useState([])
+  const [modalVisibleRecordatorio, setModalVisibleRecordatorio] = useState(false)
+  const [recordatorioEditando, setRecordatorioEditando] = useState(null)
 
   useEffect(() => {
     cargarMaterias()
   }, [])
 
   useEffect(() => {
-    sugerirRecordatorios()
+    generarSugerencias()
   }, [tipoSeleccionado, fechaEntrega])
 
   const cargarMaterias = () => {
@@ -53,7 +55,7 @@ export default function AgregarTareaScreen({ route, navigation }) {
     setMaterias(resultado)
   }
 
-  const sugerirRecordatorios = () => {
+  const generarSugerencias = () => {
     const sugeridos = []
     const fecha = new Date(fechaEntrega)
 
@@ -61,30 +63,52 @@ export default function AgregarTareaScreen({ route, navigation }) {
       const tresDias = new Date(fecha)
       tresDias.setDate(tresDias.getDate() - 3)
       tresDias.setHours(18, 0, 0)
-      sugeridos.push({ label: '3 días antes · 6:00 PM', fecha: tresDias, activo: true })
+      sugeridos.push({ label: '3 días antes · 6:00 PM', fecha: tresDias, activo: true, repeticion: 'una_vez', dias: '' })
     }
 
     if (tipoSeleccionado === 'medicamento') {
       const hoy = new Date()
       hoy.setHours(8, 0, 0)
-      sugeridos.push({ label: 'Diario · 8:00 AM', fecha: hoy, activo: true, repeticion: 'diario' })
+      sugeridos.push({ label: 'Diario · 8:00 AM', fecha: hoy, activo: true, repeticion: 'diario', dias: '' })
     }
 
     const unDiaAntes = new Date(fecha)
     unDiaAntes.setDate(unDiaAntes.getDate() - 1)
     unDiaAntes.setHours(18, 0, 0)
-    sugeridos.push({ label: '1 día antes · 6:00 PM', fecha: unDiaAntes, activo: true })
+    sugeridos.push({ label: '1 día antes · 6:00 PM', fecha: unDiaAntes, activo: true, repeticion: 'una_vez', dias: '' })
 
     const mismodia = new Date(fecha)
     mismodia.setHours(6, 0, 0)
-    sugeridos.push({ label: 'Día de entrega · 6:00 AM', fecha: mismodia, activo: true })
+    sugeridos.push({ label: 'Día de entrega · 6:00 AM', fecha: mismodia, activo: true, repeticion: 'una_vez', dias: '' })
 
-    setRecordatorios(sugeridos)
+    setRecordatoriosSugeridos(sugeridos)
   }
 
   const toggleRecordatorio = (index) => {
-    const nuevos = [...recordatorios]
+    const nuevos = [...recordatoriosSugeridos]
     nuevos[index].activo = !nuevos[index].activo
+    setRecordatoriosSugeridos(nuevos)
+  }
+
+  const agregarRecordatorioPersonalizado = () => {
+    setRecordatorioEditando(null)
+    setModalVisibleRecordatorio(true)
+  }
+
+  const guardarRecordatorio = (data, index) => {
+    if (index !== null) {
+      // Editar existente
+      const nuevos = [...recordatorios]
+      nuevos[index] = data
+      setRecordatorios(nuevos)
+    } else {
+      // Agregar nuevo
+      setRecordatorios([...recordatorios, data])
+    }
+  }
+
+  const eliminarRecordatorio = (index) => {
+    const nuevos = recordatorios.filter((_, i) => i !== index)
     setRecordatorios(nuevos)
   }
 
@@ -118,17 +142,20 @@ export default function AgregarTareaScreen({ route, navigation }) {
     )
 
     const tareaId = resultado.lastInsertRowId
+    const mensajeTarea = `${titulo}${materiaSeleccionada ? ' · ' + (materias.find(m => m.id === materiaSeleccionada)?.nombre || '') : ''}`
 
-    for (const r of recordatorios) {
+    // Guardar recordatorios sugeridos activos
+    for (const r of recordatoriosSugeridos) {
       if (r.activo) {
         db.runSync(
-          `INSERT INTO recordatorios (tarea_id, fecha_hora, mensaje, repeticion)
-          VALUES (?, ?, ?, ?)`,
+          `INSERT INTO recordatorios (tarea_id, fecha_hora, mensaje, repeticion, dias)
+          VALUES (?, ?, ?, ?, ?)`,
           [
             tareaId,
             r.fecha.toISOString(),
-            `${titulo}${materiaSeleccionada ? ' · ' + (materias.find(m => m.id === materiaSeleccionada)?.nombre || '') : ''}`,
-            r.repeticion || 'una_vez'
+            mensajeTarea,
+            r.repeticion || 'una_vez',
+            r.dias || ''
           ]
         )
 
@@ -148,6 +175,38 @@ export default function AgregarTareaScreen({ route, navigation }) {
             tareaId
           )
         }
+      }
+    }
+
+    // Guardar recordatorios personalizados
+    for (const r of recordatorios) {
+      db.runSync(
+        `INSERT INTO recordatorios (tarea_id, fecha_hora, mensaje, repeticion, dias)
+        VALUES (?, ?, ?, ?, ?)`,
+        [
+          tareaId,
+          r.fecha.toISOString(),
+          r.mensaje || mensajeTarea,
+          r.repeticion || 'una_vez',
+          r.dias || ''
+        ]
+      )
+
+      if (r.repeticion === 'diario' || r.repeticion === 'lunes_viernes' || r.repeticion === 'cada_2_dias' || r.repeticion === 'cada_3_dias') {
+        await programarNotificacionDiaria(
+          '🔔 Recordatorio',
+          r.mensaje || titulo,
+          r.fecha.getHours(),
+          r.fecha.getMinutes(),
+          tareaId
+        )
+      } else {
+        await programarNotificacion(
+          '🔔 Recordatorio',
+          r.mensaje || `Recordatorio: ${titulo}`,
+          r.fecha,
+          tareaId
+        )
       }
     }
 
@@ -289,9 +348,9 @@ export default function AgregarTareaScreen({ route, navigation }) {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.label}>Recordatorios sugeridos</Text>
+          <Text style={styles.label}>📌 Recordatorios sugeridos</Text>
           <Text style={styles.sublabel}>Tocá para activar o desactivar</Text>
-          {recordatorios.map((r, i) => (
+          {recordatoriosSugeridos.map((r, i) => (
             <View
               key={i}
               style={[styles.recordatorioRow, r.activo && styles.recordatorioActivo]}
@@ -306,43 +365,51 @@ export default function AgregarTareaScreen({ route, navigation }) {
               <Text style={[styles.recordatorioText, r.activo && { color: COLORS.textPrimary }]}>
                 {r.label}
               </Text>
-              {r.activo && (
-                <TouchableOpacity
-                  style={[styles.horaBtn, { borderColor: hijo.color }]}
-                  onPress={() => {
-                    setRecordatorioEditando(i)
-                    setMostrarTimePicker(true)
-                  }}
-                >
-                  <Text style={[styles.horaBtnText, { color: hijo.color }]}>
-                    {r.fecha.getHours().toString().padStart(2,'0')}:{r.fecha.getMinutes().toString().padStart(2,'0')}
-                  </Text>
-                </TouchableOpacity>
-              )}
             </View>
           ))}
+        </View>
 
-          {mostrarTimePicker && (
-            <DateTimePicker
-              value={recordatorios[recordatorioEditando]?.fecha || new Date()}
-              mode="time"
-              display="default"
-              onChange={(event, hora) => {
-                setMostrarTimePicker(false)
-                if (hora && recordatorioEditando !== null) {
-                  const nuevos = [...recordatorios]
-                  const fecha = new Date(nuevos[recordatorioEditando].fecha)
-                  fecha.setHours(hora.getHours())
-                  fecha.setMinutes(hora.getMinutes())
-                  nuevos[recordatorioEditando].fecha = fecha
-                  nuevos[recordatorioEditando].label =
-                    nuevos[recordatorioEditando].label.split('·')[0] +
-                    `· ${hora.getHours().toString().padStart(2,'0')}:${hora.getMinutes().toString().padStart(2,'0')}`
-                  setRecordatorios(nuevos)
-                }
-              }}
-            />
-          )}
+        {recordatorios.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.label}>🎯 Tus recordatorios personalizados</Text>
+            {recordatorios.map((r, i) => (
+              <View key={i} style={styles.personalizedRecordatorio}>
+                <View style={styles.personalizedRecordatorioContent}>
+                  <Text style={styles.personalizedRecordatorioLabel}>{r.label}</Text>
+                  {r.mensaje && <Text style={styles.personalizedRecordatorioMsg}>{r.mensaje}</Text>}
+                </View>
+                <View style={styles.personalizedRecordatorioActions}>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setRecordatorioEditando(r)
+                      setModalVisibleRecordatorio(true)
+                    }}
+                    style={styles.editBtn}
+                  >
+                    <Ionicons name="pencil" size={16} color={hijo.color} />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => eliminarRecordatorio(i)}
+                    style={styles.deleteBtn}
+                  >
+                    <Ionicons name="trash" size={16} color="#E24B4A" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+
+        <View style={styles.section}>
+          <TouchableOpacity
+            style={[styles.btnAgregarRecordatorio, { borderColor: hijo.color }]}
+            onPress={agregarRecordatorioPersonalizado}
+          >
+            <Ionicons name="add-circle" size={20} color={hijo.color} />
+            <Text style={[styles.btnAgregarRecordatorioText, { color: hijo.color }]}>
+              Agregar recordatorio personalizado
+            </Text>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.section}>
@@ -368,6 +435,18 @@ export default function AgregarTareaScreen({ route, navigation }) {
 
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      <RecordatorioModal
+        visible={modalVisibleRecordatorio}
+        onClose={() => {
+          setModalVisibleRecordatorio(false)
+          setRecordatorioEditando(null)
+        }}
+        onGuardar={guardarRecordatorio}
+        recordatorio={recordatorioEditando}
+        fechaEntrega={fechaEntrega}
+        hijoColor={hijo.color}
+      />
     </View>
   )
 }
@@ -380,7 +459,7 @@ const styles = StyleSheet.create({
   headerSub: { fontSize: 14, color: 'rgba(255,255,255,0.8)', marginTop: 2 },
   scroll: { flex: 1 },
   section: { padding: 16, paddingBottom: 0 },
-  label: { fontSize: 13, fontWeight: '500', color: COLORS.textSecondary, marginBottom: 8 },
+  label: { fontSize: 13, fontWeight: '600', color: COLORS.textSecondary, marginBottom: 8 },
   sublabel: { fontSize: 12, color: COLORS.textTertiary, marginBottom: 8, marginTop: -4 },
   input: {
     borderWidth: 0.5, borderColor: COLORS.border, borderRadius: 12,
@@ -427,14 +506,27 @@ const styles = StyleSheet.create({
   },
   recordatorioActivo: { borderColor: COLORS.primary + '44', backgroundColor: COLORS.primaryLight },
   recordatorioText: { flex: 1, fontSize: 13, color: COLORS.textTertiary },
+  personalizedRecordatorio: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    padding: 12, borderRadius: 12, marginBottom: 8,
+    borderWidth: 1, borderColor: '#5B4FCF' + '44',
+    backgroundColor: '#5B4FCF' + '11'
+  },
+  personalizedRecordatorioContent: { flex: 1 },
+  personalizedRecordatorioLabel: { fontSize: 13, fontWeight: '500', color: COLORS.textPrimary, marginBottom: 2 },
+  personalizedRecordatorioMsg: { fontSize: 11, color: COLORS.textTertiary, fontStyle: 'italic' },
+  personalizedRecordatorioActions: { flexDirection: 'row', gap: 8 },
+  editBtn: { padding: 8 },
+  deleteBtn: { padding: 8 },
+  btnAgregarRecordatorio: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 10, padding: 12, borderRadius: 12, marginBottom: 16,
+    borderWidth: 1.5, borderStyle: 'dashed'
+  },
+  btnAgregarRecordatorioText: { fontSize: 13, fontWeight: '500' },
   btnGuardar: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     gap: 8, margin: 16, padding: 16, borderRadius: 16
   },
   btnGuardarText: { fontSize: 16, fontWeight: '500', color: '#fff' },
-  horaBtn: {
-    paddingHorizontal: 10, paddingVertical: 4,
-    borderRadius: 8, borderWidth: 1
-  },
-  horaBtnText: { fontSize: 12, fontWeight: '500' },
 })

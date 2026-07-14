@@ -59,6 +59,7 @@ export const initDB = () => {
         fecha_hora TEXT NOT NULL,
         mensaje TEXT DEFAULT '',
         repeticion TEXT DEFAULT 'una_vez',
+        dias TEXT DEFAULT '',
         activo INTEGER DEFAULT 1,
         FOREIGN KEY (tarea_id) REFERENCES tareas(id) ON DELETE CASCADE
       );

@@ -6,6 +6,7 @@ import {
 import { Ionicons } from '@expo/vector-icons'
 import { COLORS } from '../constants/colors'
 import db from '../database/db'
+import RecordatorioModal from '../components/RecordatorioModal'
 
 const ESTADOS = [
   { id: 'pendiente', label: 'Pendiente', color: '#BA7517', bg: '#FAEEDA' },
@@ -27,6 +28,8 @@ export default function DetalleTareaScreen({ route, navigation }) {
   const [estadoActual, setEstadoActual] = useState(tarea.estado)
   const [recordatorios, setRecordatorios] = useState([])
   const [materiaInfo, setMateriaInfo] = useState(null)
+  const [modalVisibleRecordatorio, setModalVisibleRecordatorio] = useState(false)
+  const [recordatorioEditando, setRecordatorioEditando] = useState(null)
 
   useEffect(() => {
     cargarRecordatorios()
@@ -57,6 +60,55 @@ export default function DetalleTareaScreen({ route, navigation }) {
       [nuevoEstado, tarea.id]
     )
     setEstadoActual(nuevoEstado)
+  }
+
+  const agregarRecordatorio = () => {
+    setRecordatorioEditando(null)
+    setModalVisibleRecordatorio(true)
+  }
+
+  const guardarRecordatorio = (data, index) => {
+    if (index !== null) {
+      // Editar existente
+      const recordatorioId = recordatorios[index].id
+      db.runSync(
+        `UPDATE recordatorios SET fecha_hora = ?, mensaje = ?, repeticion = ?, dias = ? WHERE id = ?`,
+        [
+          data.fecha.toISOString(),
+          data.mensaje || '',
+          data.repeticion || 'una_vez',
+          data.dias || '',
+          recordatorioId
+        ]
+      )
+    } else {
+      // Agregar nuevo
+      db.runSync(
+        `INSERT INTO recordatorios (tarea_id, fecha_hora, mensaje, repeticion, dias)
+        VALUES (?, ?, ?, ?, ?)`,
+        [
+          tarea.id,
+          data.fecha.toISOString(),
+          data.mensaje || '',
+          data.repeticion || 'una_vez',
+          data.dias || ''
+        ]
+      )
+    }
+    cargarRecordatorios()
+  }
+
+  const eliminarRecordatorio = (id) => {
+    Alert.alert('Eliminar recordatorio', '¿Eliminar este recordatorio?', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Eliminar', style: 'destructive',
+        onPress: () => {
+          db.runSync('DELETE FROM recordatorios WHERE id = ?', [id])
+          cargarRecordatorios()
+        }
+      }
+    ])
   }
 
   const eliminarTarea = () => {
@@ -204,23 +256,48 @@ export default function DetalleTareaScreen({ route, navigation }) {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Recordatorios</Text>
+          <View style={styles.recordatoriosHeader}>
+            <Text style={styles.sectionTitle}>Recordatorios</Text>
+            <TouchableOpacity
+              style={[styles.btnAgregarRecordatorio, { borderColor: hijo.color }]}
+              onPress={agregarRecordatorio}
+            >
+              <Ionicons name="add-circle" size={18} color={hijo.color} />
+              <Text style={[styles.btnAgregarRecordatorioText, { color: hijo.color }]}>Agregar</Text>
+            </TouchableOpacity>
+          </View>
           {recordatorios.length === 0 ? (
             <Text style={styles.sinRecordatorios}>Sin recordatorios configurados</Text>
           ) : (
             recordatorios.map((r, i) => (
-              <View key={i} style={styles.recordatorioRow}>
+              <View key={r.id} style={styles.recordatorioRow}>
                 <Ionicons name="notifications" size={16} color={hijo.color} />
                 <View style={styles.recordatorioInfo}>
                   <Text style={styles.recordatorioFecha}>{formatFechaHora(r.fecha_hora)}</Text>
-                  <Text style={styles.recordatorioMensaje}>{r.mensaje}</Text>
+                  {r.mensaje && <Text style={styles.recordatorioMensaje}>{r.mensaje}</Text>}
+                  {r.repeticion && r.repeticion !== 'una_vez' && (
+                    <Text style={styles.recordatorioRepeticion}>
+                      {r.repeticion === 'diario' ? '🔄 Todos los días' : `🔄 ${r.repeticion}`}
+                    </Text>
+                  )}
                 </View>
-                <View style={[styles.repeticionBadge,
-                  r.repeticion === 'diario' && { backgroundColor: COLORS.primaryLight }
-                ]}>
-                  <Text style={styles.repeticionText}>
-                    {r.repeticion === 'diario' ? 'Diario' : 'Una vez'}
-                  </Text>
+                <View style={styles.recordatorioActions}>
+                  <TouchableOpacity
+                    onPress={() => {
+                      const recordatorioConIndex = { ...r, index: i }
+                      setRecordatorioEditando(recordatorioConIndex)
+                      setModalVisibleRecordatorio(true)
+                    }}
+                    style={styles.actionBtn}
+                  >
+                    <Ionicons name="pencil" size={14} color={hijo.color} />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => eliminarRecordatorio(r.id)}
+                    style={styles.actionBtn}
+                  >
+                    <Ionicons name="trash" size={14} color="#E24B4A" />
+                  </TouchableOpacity>
                 </View>
               </View>
             ))
@@ -229,6 +306,18 @@ export default function DetalleTareaScreen({ route, navigation }) {
 
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      <RecordatorioModal
+        visible={modalVisibleRecordatorio}
+        onClose={() => {
+          setModalVisibleRecordatorio(false)
+          setRecordatorioEditando(null)
+        }}
+        onGuardar={guardarRecordatorio}
+        recordatorio={recordatorioEditando}
+        fechaEntrega={new Date(tarea.fecha_entrega)}
+        hijoColor={hijo.color}
+      />
     </View>
   )
 }
@@ -271,7 +360,14 @@ const styles = StyleSheet.create({
   estadoBadge: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, alignSelf: 'flex-start' },
   estadoText: { fontSize: 13, fontWeight: '500' },
   section: { paddingHorizontal: 16, paddingBottom: 16 },
-  sectionTitle: { fontSize: 15, fontWeight: '500', color: COLORS.textPrimary, marginBottom: 12 },
+  sectionTitle: { fontSize: 15, fontWeight: '600', color: COLORS.textPrimary },
+  recordatoriosHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  btnAgregarRecordatorio: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 12, paddingVertical: 6,
+    borderRadius: 8, borderWidth: 1.5, borderStyle: 'dashed'
+  },
+  btnAgregarRecordatorioText: { fontSize: 11, fontWeight: '600' },
   estadosGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   estadoBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
@@ -289,6 +385,9 @@ const styles = StyleSheet.create({
   recordatorioInfo: { flex: 1 },
   recordatorioFecha: { fontSize: 13, fontWeight: '500', color: COLORS.textPrimary },
   recordatorioMensaje: { fontSize: 12, color: COLORS.textSecondary, marginTop: 2 },
+  recordatorioRepeticion: { fontSize: 11, color: COLORS.primary, marginTop: 4, fontWeight: '500' },
+  recordatorioActions: { flexDirection: 'row', gap: 8 },
+  actionBtn: { padding: 6 },
   repeticionBadge: {
     backgroundColor: COLORS.background, paddingHorizontal: 8,
     paddingVertical: 4, borderRadius: 8
