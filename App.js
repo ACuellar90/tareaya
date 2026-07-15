@@ -3,6 +3,7 @@ import { StatusBar } from 'expo-status-bar'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import * as Notifications from 'expo-notifications'
 import { Linking, View, Text, TouchableOpacity, StyleSheet } from 'react-native'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 import DeviceInfo from 'react-native-device-info'
 import { initDB } from './src/database/db'
 import AppNavigator from './src/navigation/AppNavigator'
@@ -46,11 +47,19 @@ export default function App() {
     if (fabricante.toLowerCase().includes('xiaomi') ||
         fabricante.toLowerCase().includes('redmi') ||
         fabricante.toLowerCase().includes('poco')) {
-      setMostrarGuiaXiaomi(true)
+      const omitida = await AsyncStorage.getItem('guia_xiaomi_omitida')
+      if (omitida !== 'true') {
+        setMostrarGuiaXiaomi(true)
+      }
     }
   }
 
-  const abrirInicioAutomatico = () => {
+  const omitGuide = async () => {
+    await AsyncStorage.setItem('guia_xiaomi_omitida', 'true')
+    setMostrarGuiaXiaomi(false)
+  }
+
+  const abrirInicioAutomatico = async () => {
     const intentos = [
       'intent:#Intent;action=com.miui.securitycenter.permission.AutoStartActivity;end',
       'intent:#Intent;component=com.miui.securitycenter/.permission.AutoStartActivity;end',
@@ -74,7 +83,8 @@ export default function App() {
       }
     }
 
-    intentarAbrir(0)
+    await intentarAbrir(0)
+    await AsyncStorage.setItem('guia_xiaomi_omitida', 'true')
     setMostrarGuiaXiaomi(false)
   }
 
@@ -103,7 +113,7 @@ export default function App() {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.guiaBtnSkip}
-            onPress={() => setMostrarGuiaXiaomi(false)}
+            onPress={omitGuide}
           >
             <Text style={styles.guiaBtnSkipText}>Omitir por ahora</Text>
           </TouchableOpacity>

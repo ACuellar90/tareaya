@@ -381,7 +381,7 @@ export default function AgregarTareaScreen({ route, navigation }) {
                 <View style={styles.personalizedRecordatorioActions}>
                   <TouchableOpacity
                     onPress={() => {
-                      setRecordatorioEditando(r)
+                      setRecordatorioEditando({ ...r, index: i })
                       setModalVisibleRecordatorio(true)
                     }}
                     style={styles.editBtn}

@@ -34,13 +34,29 @@ export default function RecordatorioModal({
   fechaEntrega = new Date(),
   hijoColor = '#5B4FCF'
 }) {
-  const [fecha, setFecha] = useState(recordatorio?.fecha || new Date())
+    const parseFecha = (item) => {
+    if (!item) return fechaEntrega || new Date()
+    if (item.fecha instanceof Date) return item.fecha
+    if (typeof item.fecha_hora === 'string') return new Date(item.fecha_hora)
+    if (item.fecha) return new Date(item.fecha)
+    return fechaEntrega || new Date()
+  }
+
+  const [fecha, setFecha] = useState(parseFecha(recordatorio))
   const [mostrarFecha, setMostrarFecha] = useState(false)
   const [mostrarHora, setMostrarHora] = useState(false)
   const [repeticion, setRepeticion] = useState(recordatorio?.repeticion || 'una_vez')
   const [dias, setDias] = useState(recordatorio?.dias ? recordatorio.dias.split(',') : [])
   const [mensaje, setMensaje] = useState(recordatorio?.mensaje || '')
   const [activo, setActivo] = useState(recordatorio?.activo !== false)
+
+  useEffect(() => {
+    setFecha(parseFecha(recordatorio))
+    setRepeticion(recordatorio?.repeticion || 'una_vez')
+    setDias(recordatorio?.dias ? recordatorio.dias.split(',') : [])
+    setMensaje(recordatorio?.mensaje || '')
+    setActivo(recordatorio?.activo !== false)
+  }, [recordatorio])
 
   const toggleDia = (dia) => {
     if (dias.includes(dia)) {
