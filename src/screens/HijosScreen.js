@@ -12,13 +12,6 @@ const COLORES_PERFIL = [
   '#185FA5', '#993556', '#0F6E56', '#712B13'
 ]
 
-const GRADOS = [
-  'Parvularia', '1° Grado', '2° Grado', '3° Grado',
-  '4° Grado', '5° Grado', '6° Grado',
-  '7° Grado', '8° Grado', '9° Grado',
-  '1° Bachillerato', '2° Bachillerato', '3° Bachillerato'
-]
-
 export default function HijosScreen({ navigation }) {
   const [hijos, setHijos] = useState([])
   const [modalVisible, setModalVisible] = useState(false)
@@ -141,27 +134,13 @@ export default function HijosScreen({ navigation }) {
             />
 
             <Text style={styles.inputLabel}>Grado</Text>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={styles.gradoScroll}
-            >
-              {GRADOS.map(g => (
-                <TouchableOpacity
-                  key={g}
-                  style={[
-                    styles.gradoPill,
-                    gradoSeleccionado === g && styles.gradoPillActive
-                  ]}
-                  onPress={() => setGradoSeleccionado(g)}
-                >
-                  <Text style={[
-                    styles.gradoPillText,
-                    gradoSeleccionado === g && styles.gradoPillTextActive
-                  ]}>{g}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
+            <TextInput
+              style={styles.input}
+              placeholder="Ej: 4° Grado, Parvularia, 1° Bachillerato"
+              placeholderTextColor={COLORS.textTertiary}
+              value={gradoSeleccionado}
+              onChangeText={setGradoSeleccionado}
+            />
 
             <Text style={styles.inputLabel}>Color de perfil</Text>
             <View style={styles.coloresRow}>

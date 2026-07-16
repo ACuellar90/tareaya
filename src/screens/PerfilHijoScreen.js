@@ -19,13 +19,6 @@ const COLORES_MATERIA = [
   '#185FA5', '#993556', '#0F6E56', '#712B13'
 ]
 
-const MATERIAS_SUGERIDAS = [
-  'Números y Formas', 'Ciudadanía y Valores',
-  'Ciencia y Tecnología', 'Ciencias de la computación', 'Lengua y Literatura',
-  'Matemáticas', 'Inglés', 'Educación Física', 'Arte y Cultura',
-  'Estudios Sociales', 'Religión', 'Orientación', 'Emprendimiento'
-]
-
 const TIPOS_RECORDATORIO = [
   { id: 'general', label: 'General', icon: 'notifications' },
   { id: 'reunion', label: 'Reunión', icon: 'people' },
@@ -412,18 +405,6 @@ export default function PerfilHijoScreen({ route, navigation }) {
                 value={nombreMateria}
                 onChangeText={setNombreMateria}
               />
-              <Text style={styles.inputLabel}>Sugerencias</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 8 }}>
-                {MATERIAS_SUGERIDAS.map(s => (
-                  <TouchableOpacity
-                    key={s}
-                    style={styles.sugerenciaPill}
-                    onPress={() => setNombreMateria(s)}
-                  >
-                    <Text style={styles.sugerenciaText}>{s}</Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
               <Text style={styles.inputLabel}>Color</Text>
               <View style={styles.coloresRow}>
                 {COLORES_MATERIA.map(c => (
