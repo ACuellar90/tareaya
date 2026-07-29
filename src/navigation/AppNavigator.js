@@ -56,7 +56,7 @@ function TabNavigator() {
   )
 }
 
-export default function AppNavigator() {
+export default function AppNavigator({ rol }) {
   return (
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
