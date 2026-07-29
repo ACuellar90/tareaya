@@ -6,18 +6,21 @@ import {
 import { Ionicons } from '@expo/vector-icons'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { COLORS } from '../constants/colors'
+import BrandBadge from '../components/BrandBadge'
 
 const VERSION = '1.1.0'
 const WHATSAPP = '50300000000'
 const CORREO = 'tareaya.app@gmail.com'
 
-export default function AjustesScreen() {
+export default function AjustesScreen({ route }) {
   const [nombre, setNombre] = useState('')
   const [editandoNombre, setEditandoNombre] = useState(false)
   const [notificaciones, setNotificaciones] = useState(true)
+  const [rol, setRol] = useState('padre')
 
   useEffect(() => {
     cargarAjustes()
+    cargarRol()
   }, [])
 
   const cargarAjustes = async () => {
@@ -25,6 +28,11 @@ export default function AjustesScreen() {
     const notifGuardada = await AsyncStorage.getItem('notificaciones')
     if (nombreGuardado) setNombre(nombreGuardado)
     if (notifGuardada !== null) setNotificaciones(notifGuardada === 'true')
+  }
+
+  const cargarRol = async () => {
+    const rolGuardado = await AsyncStorage.getItem('usuario_rol')
+    if (rolGuardado) setRol(rolGuardado)
   }
 
   const guardarNombre = async () => {
@@ -48,7 +56,8 @@ export default function AjustesScreen() {
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Ajustes</Text>
+        <BrandBadge showTagline />
+        <Text style={styles.headerTitle}>{rol === 'estudiante' ? 'Ajustes para estudiar mejor' : 'Ajustes'}</Text>
       </View>
 
       <View style={styles.section}>
@@ -59,7 +68,7 @@ export default function AjustesScreen() {
               <Ionicons name="person" size={18} color={COLORS.primary} />
             </View>
             <View style={styles.rowContent}>
-              <Text style={styles.rowLabel}>Nombre del tutor</Text>
+              <Text style={styles.rowLabel}>{rol === 'estudiante' ? 'Tu nombre' : 'Nombre del tutor'}</Text>
               {editandoNombre ? (
                 <View style={styles.inputRow}>
                   <TextInput
@@ -155,7 +164,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20, paddingTop: 60, paddingBottom: 16,
     backgroundColor: COLORS.surface, borderBottomWidth: 0.5, borderBottomColor: COLORS.border
   },
-  headerTitle: { fontSize: 22, fontWeight: '500', color: COLORS.textPrimary },
+  headerTitle: { fontSize: 22, fontWeight: '500', color: COLORS.textPrimary, marginTop: 12 },
   section: { paddingHorizontal: 16, paddingTop: 20 },
   sectionLabel: {
     fontSize: 12, fontWeight: '500', color: COLORS.textTertiary,

@@ -10,6 +10,7 @@ import AppNavigator from './src/navigation/AppNavigator'
 import { pedirPermisos } from './src/utils/notificaciones'
 import { registrarBackgroundFetch } from './src/utils/backgroundService'
 import { COLORS } from './src/constants/colors'
+import SeleccionRolScreen from './src/screens/SeleccionRolScreen'
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -21,12 +22,15 @@ Notifications.setNotificationHandler({
 
 export default function App() {
   const [mostrarGuiaXiaomi, setMostrarGuiaXiaomi] = useState(false)
+  const [rolSeleccionado, setRolSeleccionado] = useState(null)
+  const [cargandoRol, setCargandoRol] = useState(true)
 
   useEffect(() => {
     initDB()
     pedirPermisos()
     registrarBackgroundFetch()
     verificarXiaomi()
+    cargarRol()
 
     const subscription = Notifications.addNotificationReceivedListener(notif => {
       console.log('Notificación recibida:', notif)
@@ -41,6 +45,12 @@ export default function App() {
       responseSubscription.remove()
     }
   }, [])
+
+  const cargarRol = async () => {
+    const rolGuardado = await AsyncStorage.getItem('usuario_rol')
+    setRolSeleccionado(rolGuardado)
+    setCargandoRol(false)
+  }
 
   const verificarXiaomi = async () => {
     const fabricante = await DeviceInfo.getManufacturer()
@@ -88,6 +98,23 @@ export default function App() {
     setMostrarGuiaXiaomi(false)
   }
 
+  const manejarSeleccionRol = (rol) => {
+    setRolSeleccionado(rol)
+    setCargandoRol(false)
+  }
+
+  if (cargandoRol) {
+    return null
+  }
+
+  if (!rolSeleccionado) {
+    return (
+      <SafeAreaProvider>
+        <SeleccionRolScreen onSelectRole={manejarSeleccionRol} />
+      </SafeAreaProvider>
+    )
+  }
+
   if (mostrarGuiaXiaomi) {
     return (
       <SafeAreaProvider>
@@ -125,7 +152,7 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <StatusBar style="dark" />
-      <AppNavigator />
+      <AppNavigator rol={rolSeleccionado} />
     </SafeAreaProvider>
   )
 }

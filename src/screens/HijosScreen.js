@@ -4,6 +4,7 @@ import {
   FlatList, Modal, TextInput, ScrollView, Alert,
   KeyboardAvoidingView, Platform
 } from 'react-native'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 import { COLORS } from '../constants/colors'
 import db from '../database/db'
 
@@ -18,10 +19,17 @@ export default function HijosScreen({ navigation }) {
   const [nombre, setNombre] = useState('')
   const [gradoSeleccionado, setGradoSeleccionado] = useState('')
   const [colorSeleccionado, setColorSeleccionado] = useState(COLORES_PERFIL[0])
+  const [rol, setRol] = useState('padre')
 
   useEffect(() => {
     cargarHijos()
+    cargarRol()
   }, [])
+
+  const cargarRol = async () => {
+    const rolGuardado = await AsyncStorage.getItem('usuario_rol')
+    if (rolGuardado) setRol(rolGuardado)
+  }
 
   const cargarHijos = () => {
     const resultado = db.getAllSync('SELECT * FROM hijos ORDER BY nombre ASC')
@@ -91,20 +99,31 @@ export default function HijosScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Mis hijos</Text>
-        <TouchableOpacity
-          style={styles.btnAgregar}
-          onPress={() => setModalVisible(true)}
-        >
-          <Text style={styles.btnAgregarText}>+ Agregar</Text>
-        </TouchableOpacity>
+        <View>
+          <Text style={styles.headerTitle}>{rol === 'estudiante' ? 'Mi perfil' : 'Mis hijos'}</Text>
+          {rol === 'estudiante' && (
+            <Text style={styles.headerSubtitle}>Tu espacio para organizar tus clases y tareas</Text>
+          )}
+        </View>
+        {rol !== 'estudiante' && (
+          <TouchableOpacity
+            style={styles.btnAgregar}
+            onPress={() => setModalVisible(true)}
+          >
+            <Text style={styles.btnAgregarText}>+ Agregar</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {hijos.length === 0 ? (
         <View style={styles.empty}>
           <Text style={styles.emptyIcon}>👨‍👧‍👦</Text>
-          <Text style={styles.emptyTitle}>Sin hijos registrados</Text>
-          <Text style={styles.emptyDesc}>Tocá "Agregar" para registrar tu primer hijo</Text>
+          <Text style={styles.emptyTitle}>{rol === 'estudiante' ? 'Tu espacio listo' : 'Sin hijos registrados'}</Text>
+          <Text style={styles.emptyDesc}>
+            {rol === 'estudiante'
+              ? 'Entrá a tu perfil para crear tus materias, tareas y recordatorios.'
+              : 'Tocá "Agregar" para registrar tu primer hijo'}
+          </Text>
         </View>
       ) : (
         <FlatList
@@ -122,7 +141,7 @@ export default function HijosScreen({ navigation }) {
         >
           <View style={styles.modalOverlay}>
             <View style={styles.modalContainer}>
-              <Text style={styles.modalTitle}>Nuevo hijo</Text>
+              <Text style={styles.modalTitle}>{rol === 'estudiante' ? 'Nuevo perfil' : 'Nuevo hijo'}</Text>
 
             <Text style={styles.inputLabel}>Nombre</Text>
             <TextInput
@@ -188,6 +207,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0.5, borderBottomColor: COLORS.border
   },
   headerTitle: { fontSize: 22, fontWeight: '500', color: COLORS.textPrimary },
+  headerSubtitle: { fontSize: 13, color: COLORS.primary, marginTop: 2 },
   btnAgregar: {
     backgroundColor: COLORS.primary, paddingHorizontal: 16,
     paddingVertical: 8, borderRadius: 20

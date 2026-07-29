@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   View, Text, StyleSheet, ScrollView,
   TouchableOpacity, FlatList
@@ -6,20 +6,32 @@ import {
 import { Ionicons } from '@expo/vector-icons'
 import { useFocusEffect } from '@react-navigation/native'
 import { useCallback } from 'react'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 import { COLORS } from '../constants/colors'
 import db from '../database/db'
+import BrandBadge from '../components/BrandBadge'
 
-export default function HomeScreen({ navigation }) {
+export default function HomeScreen({ navigation, route }) {
   const [hijos, setHijos] = useState([])
   const [tareasHoy, setTareasHoy] = useState([])
   const [tareasUrgentes, setTareasUrgentes] = useState([])
   const [totalPendientes, setTotalPendientes] = useState(0)
+  const [rol, setRol] = useState('padre')
+
+  useEffect(() => {
+    cargarRol()
+  }, [])
 
   useFocusEffect(
     useCallback(() => {
       cargarDatos()
     }, [])
   )
+
+  const cargarRol = async () => {
+    const rolGuardado = await AsyncStorage.getItem('usuario_rol')
+    if (rolGuardado) setRol(rolGuardado)
+  }
 
   const cargarDatos = () => {
     const hijosData = db.getAllSync('SELECT * FROM hijos ORDER BY nombre ASC')
@@ -61,10 +73,11 @@ export default function HomeScreen({ navigation }) {
 
   const getSaludo = () => {
     const hora = new Date().getHours()
-    if (hora < 12) return 'Buenos días'
-    if (hora < 18) return 'Buenas tardes'
-    return 'Buenas noches'
+    const saludoBase = hora < 12 ? 'Buenos días' : hora < 18 ? 'Buenas tardes' : 'Buenas noches'
+    return rol === 'estudiante' ? `${saludoBase}, estudiante` : saludoBase
   }
+
+  const getTituloPrincipal = () => rol === 'estudiante' ? 'Mi semana' : 'Inicio'
 
   const getFecha = () => {
     return new Date().toLocaleDateString('es-SV', {
@@ -83,6 +96,18 @@ export default function HomeScreen({ navigation }) {
     if (estado === 'en_progreso') return { color: '#185FA5', bg: '#E6F1FB', label: 'En progreso' }
     if (estado === 'vencida') return { color: '#E24B4A', bg: '#FCEBEB', label: 'Vencida' }
     return { color: '#BA7517', bg: '#FAEEDA', label: 'Pendiente' }
+  }
+
+  const irAMiEspacio = () => {
+    if (rol === 'estudiante') {
+      const perfil = hijos.find(h => h.nombre === 'Mi perfil' || h.grado === 'Estudiante')
+      if (perfil) {
+        navigation.navigate('PerfilHijo', { hijo: perfil })
+        return
+      }
+    }
+
+    navigation.navigate('Hijos')
   }
 
   const renderTareaCard = (t, index) => {
@@ -123,13 +148,18 @@ export default function HomeScreen({ navigation }) {
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.header}>
-        <View>
+        <View style={{ flex: 1 }}>
+          <BrandBadge compact showTagline />
           <Text style={styles.saludo}>{getSaludo()}</Text>
           <Text style={styles.fecha}>{getFecha()}</Text>
+          <Text style={styles.sectionMiniTitle}>{getTituloPrincipal()}</Text>
+          {rol === 'estudiante' && (
+            <Text style={styles.studentHint}>Tu agenda escolar en un solo lugar</Text>
+          )}
         </View>
         <TouchableOpacity
           style={styles.addBtn}
-          onPress={() => navigation.navigate('Hijos')}
+          onPress={irAMiEspacio}
         >
           <Ionicons name="people" size={20} color={COLORS.primary} />
         </TouchableOpacity>
@@ -138,7 +168,7 @@ export default function HomeScreen({ navigation }) {
       <View style={styles.statsRow}>
         <View style={styles.statCard}>
           <Text style={styles.statNum}>{hijos.length}</Text>
-          <Text style={styles.statLabel}>Hijos</Text>
+          <Text style={styles.statLabel}>{rol === 'estudiante' ? 'Mi perfil' : 'Hijos'}</Text>
         </View>
         <View style={styles.statCard}>
           <Text style={[styles.statNum, { color: '#BA7517' }]}>{totalPendientes}</Text>
@@ -153,11 +183,17 @@ export default function HomeScreen({ navigation }) {
       {hijos.length === 0 ? (
         <View style={styles.emptyState}>
           <Text style={styles.emptyIcon}>👨‍👧‍👦</Text>
-          <Text style={styles.emptyTitle}>¡Bienvenido a TareaKids!</Text>
-          <Text style={styles.emptyDesc}>Empezá agregando a tus hijos para organizar sus tareas</Text>
+          <Text style={styles.emptyTitle}>
+            {rol === 'estudiante' ? '¡Tu espacio está listo!' : '¡Bienvenido a TareaKids!'}
+          </Text>
+          <Text style={styles.emptyDesc}>
+            {rol === 'estudiante'
+              ? 'Empezá creando tus materias, tareas y recordatorios personales para organizar tu semana.'
+              : 'Empezá agregando a tus hijos para organizar sus tareas'}
+          </Text>
           <TouchableOpacity
             style={styles.emptyBtn}
-            onPress={() => navigation.navigate('Hijos')}
+            onPress={irAMiEspacio}
           >
             <Text style={styles.emptyBtnText}>Agregar primer hijo</Text>
           </TouchableOpacity>
@@ -206,7 +242,7 @@ export default function HomeScreen({ navigation }) {
             <View style={styles.sectionHeader}>
               <View style={styles.sectionTitleRow}>
                 <View style={[styles.sectionDot, { backgroundColor: COLORS.primary }]} />
-                <Text style={styles.sectionTitle}>Mis hijos</Text>
+                <Text style={styles.sectionTitle}>{rol === 'estudiante' ? 'Mi perfil' : 'Mis hijos'}</Text>
               </View>
             </View>
             {hijos.map(h => {
@@ -255,6 +291,8 @@ const styles = StyleSheet.create({
   },
   saludo: { fontSize: 22, fontWeight: '500', color: COLORS.textPrimary },
   fecha: { fontSize: 13, color: COLORS.textSecondary, marginTop: 2, textTransform: 'capitalize' },
+  sectionMiniTitle: { fontSize: 12, color: COLORS.primary, marginTop: 4, fontWeight: '600' },
+  studentHint: { fontSize: 12, color: COLORS.secondary, marginTop: 2, fontWeight: '600' },
   addBtn: {
     width: 40, height: 40, borderRadius: 20,
     backgroundColor: COLORS.primaryLight,
